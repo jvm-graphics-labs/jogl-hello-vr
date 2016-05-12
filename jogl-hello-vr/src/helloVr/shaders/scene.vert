@@ -2,7 +2,7 @@
 
 #include semantic.glsl
 
-layout(location = POSITION) in vec4 position;
+layout(location = POSITION) in vec3 position;
 layout(location = TEX_COORD) in vec2 texCoord;
 
 uniform mat4 matrix;
@@ -12,5 +12,5 @@ out vec2 uvCoord;
 void main()
 {
     uvCoord = texCoord;
-    gl_Position = matrix * position;
+    gl_Position = matrix * vec4(position, 1.0);
 }
