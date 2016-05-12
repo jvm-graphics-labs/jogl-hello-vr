@@ -2,13 +2,13 @@
 
 #include semantic.glsl
 
-uniform sampler2D texture_;
+uniform sampler2D myTexture;
 
-in vec2 uvCoords_;
+in vec2 uvCoord;
 
 layout (location = FRAG_COLOR) out vec4 outputColor;
 
 void main()
 {
-   outputColor = texture(texture_, uvCoords_);
+   outputColor = texture(myTexture, uvCoord);
 }

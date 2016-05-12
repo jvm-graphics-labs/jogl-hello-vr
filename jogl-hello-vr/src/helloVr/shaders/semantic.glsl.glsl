@@ -1,7 +1,11 @@
 // Attributes
 #define POSITION    0
-#define UV_COORDS   1
-#define NORMAL      2
+#define TEX_COORD   1
+#define COLOR       2
+#define NORMAL      3
+#define UV_RED      4
+#define UV_GREEN    5
+#define UV_BLUE     6
 
 // Outputs
 #define FRAG_COLOR  0

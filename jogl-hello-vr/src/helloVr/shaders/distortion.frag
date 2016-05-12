@@ -1,27 +1,27 @@
-/*
- * Sample dummy shader to check the highlighter plugin.
- */
+#version 410 core
 
-#version 430 core
-#extension GL_ARB_shading_language_include : require
+#include semantic.glsl
 
-#include "my-shader.glsl"
+uniform sampler2D myTexture;
 
-uniform vec3 position;
-uniform uint elementCount;
-uniform usampler3D textureSampler;
+noperspective in vec2 uvRed_;
+noperspective in vec2 uvGreen_;
+noperspective in vec2 uvBlue_;
 
-layout(binding = 0, r32ui) readonly uniform uimage3D myImage3D;
+layout (location = FRAG_COLOR) out vec4 outputColor;
 
-layout (local_size_x = 256) in;
-void main() {
-    if (gl_GlobalInvocationID.x >= elementCount) { return; }
-
-    int number = 5 + 3;
-    float alpha = 0.5f;    // line comment
-
-    ivec3 texCoord = ivec3(0,0,0);
-    uint value = imageLoad(myImage3D, texCoord);
-
-    @$@$ // Invalid characters! They're only allowed inside comments: @$@$
+void main()
+{
+    vec2 lt = vec2(lessThan(uvGreen_, vec2(0.05)));
+    vec2 gt = vec2(greaterThan(uvGreen_, vec2(0.95)));
+    float boundsCheck = dot(ls, vec2(1.0)) + dot(gt, vec2(1.0)));
+    if(boundsCheck > 1.0 )
+        outputColor = vec4(0, 0, 0, 1.0);
+    else
+    {
+        float red = texture(myTexture, uvRed_).x;
+        float green = texture(myTexture, uvGreen_).y;
+        float blue = texture(myTexture, uvBlue_).z;
+        outputColor = vec4(red, green, blue, 1.0); 
+    }    
 }

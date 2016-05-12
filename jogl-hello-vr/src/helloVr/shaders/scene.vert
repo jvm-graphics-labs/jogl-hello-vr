@@ -3,15 +3,14 @@
 #include semantic.glsl
 
 layout(location = POSITION) in vec4 position;
-layout(location = UV_COORDS) in vec2 uvCoords;
-layout(location = NORMAL) in vec3 normalIn;
+layout(location = TEX_COORD) in vec2 texCoord;
 
 uniform mat4 matrix;
 
-out vec2 uvCoords_;
+out vec2 uvCoord;
 
 void main()
 {
-    uvCoords_ = uvCoords;
+    uvCoord = texCoord;
     gl_Position = matrix * position;
 }
