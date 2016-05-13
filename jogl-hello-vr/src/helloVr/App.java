@@ -6,7 +6,6 @@
 package helloVr;
 
 import com.jogamp.newt.Display;
-import com.jogamp.newt.MonitorDevice;
 import com.jogamp.newt.NewtFactory;
 import com.jogamp.newt.Screen;
 import com.jogamp.newt.event.KeyEvent;
@@ -36,7 +35,6 @@ import static com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT_SYNCHRONOUS;
 import static com.jogamp.opengl.GL2ES2.GL_FRAGMENT_SHADER;
 import static com.jogamp.opengl.GL2ES2.GL_VERTEX_SHADER;
 import com.jogamp.opengl.GL2ES3;
-import static com.jogamp.opengl.GL2ES3.GL_COLOR;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
@@ -60,7 +58,6 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jgli.Texture2d;
-import jopenvr.COpenVRContext;
 import jopenvr.DistortionCoordinates_t;
 import jopenvr.HmdMatrix34_t;
 import jopenvr.HmdMatrix44_t;
@@ -68,8 +65,6 @@ import jopenvr.IVRCompositor;
 import jopenvr.VR;
 import jopenvr.IVRSystem;
 import jopenvr.Texture_t;
-import static jopenvr.VR.IVRSystem_Version;
-import static jopenvr.VR.VR_IsInterfaceVersionValid;
 
 /**
  *
@@ -98,9 +93,9 @@ public class App implements GLEventListener, KeyListener {
             String s = "Unable to init VR runtime: " + VR.VR_GetVRInitErrorAsEnglishDescription(error.get(0));
             throw new Error("VR_Init Failed, " + s);
         }
-        System.out.println(""+VR_IsInterfaceVersionValid(VR.IVRCompositor_Version));
         compositor = new IVRCompositor(VR.VR_GetGenericInterface(VR.IVRCompositor_Version, error));
-        System.out.println("error "+error.get(0) );
+        compositor.read();
+        
         Display display = NewtFactory.createDisplay(null);
         Screen screen = NewtFactory.createScreen(display, 0);
         GLProfile glProfile = GLProfile.get(GLProfile.GL4);
@@ -485,9 +480,6 @@ public class App implements GLEventListener, KeyListener {
 
         GL4 gl4 = drawable.getGL().getGL4();
 
-        clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
-        gl4.glClearBufferfv(GL2ES3.GL_COLOR, 0, clearColor);
-
         renderStereoTargets(gl4);
 
         Texture_t leftEyeTexture = new Texture_t(
@@ -500,6 +492,15 @@ public class App implements GLEventListener, KeyListener {
                 VR.EGraphicsAPIConvention.API_OpenGL, 
                 VR.EColorSpace.ColorSpace_Gamma);
         compositor.Submit.apply(VR.EVREye.Eye_Right, rightEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+        
+        gl4.glFinish();
+        drawable.swapBuffers();
+        
+        clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
+        gl4.glClearBufferfv(GL2ES3.GL_COLOR, 0, clearColor);
+        
+        gl4.glFlush();
+        gl4.glFinish();
     }
 
     private void renderStereoTargets(GL4 gl4) {
