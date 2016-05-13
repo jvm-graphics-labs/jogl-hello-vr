@@ -14,7 +14,7 @@ void main()
 {
     vec2 lt = vec2(lessThan(uvGreen_, vec2(0.05)));
     vec2 gt = vec2(greaterThan(uvGreen_, vec2(0.95)));
-    float boundsCheck = dot(ls, vec2(1.0)) + dot(gt, vec2(1.0)));
+    float boundsCheck = dot(lt, vec2(1.0)) + dot(gt, vec2(1.0));
     if(boundsCheck > 1.0 )
         outputColor = vec4(0, 0, 0, 1.0);
     else

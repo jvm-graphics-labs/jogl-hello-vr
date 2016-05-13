@@ -6,8 +6,13 @@
 package helloVr;
 
 import static com.jogamp.opengl.GL.GL_ARRAY_BUFFER;
+import static com.jogamp.opengl.GL.GL_DEPTH_TEST;
 import static com.jogamp.opengl.GL.GL_FLOAT;
 import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
+import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
+import static com.jogamp.opengl.GL.GL_TRIANGLES;
+import static com.jogamp.opengl.GL2ES3.GL_COLOR;
+import static com.jogamp.opengl.GL2ES3.GL_DEPTH;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.util.GLBuffers;
 import glm.mat._4.Mat4;
@@ -16,6 +21,7 @@ import glm.vec._3.i.Vec3i;
 import glm.vec._4.Vec4;
 import glutil.BufferUtils;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 
@@ -30,6 +36,8 @@ public class Scene {
     private Vec3i sceneVolume = new Vec3i(sceneVolumeInit);
     private IntBuffer vertexArrayName = GLBuffers.newDirectIntBuffer(1),
             vertexBufferName = GLBuffers.newDirectIntBuffer(1);
+    private Mat4 mvp = new Mat4();
+    private FloatBuffer matBuffer = GLBuffers.newDirectFloatBuffer(16);
 
     public Scene(GL4 gl4) {
 
@@ -80,7 +88,7 @@ public class Scene {
         gl4.glVertexAttribPointer(Semantic.Attr.TERX_COORD, 2, GL_FLOAT, false, stride, offset);
 
         gl4.glBindVertexArray(0);
-        
+
         BufferUtils.destroyDirectBuffer(vertexBuffer);
     }
 
@@ -145,5 +153,30 @@ public class Scene {
         vertexData.add(fl2);
         vertexData.add(fl3);
         vertexData.add(fl4);
+    }
+
+    void render(GL4 gl4, int eye) {
+
+        gl4.glClearBufferfv(GL_COLOR, 0, App.clearColor);
+        gl4.glClearBufferfv(GL_DEPTH, 0, App.clearDepth);
+        gl4.glEnable(GL_DEPTH_TEST);
+
+        if (App.showCubes) {
+
+            gl4.glUseProgram(App.programName[App.Program.SCENE]);
+            gl4.glUniformMatrix4fv(App.matrixLocation[App.Program.SCENE], 1, false, getCurrentViewProjectionMatrix(eye));
+            gl4.glBindVertexArray(App.vertexArrayName.get(App.VertexArray.SCENE));
+            gl4.glBindTexture(GL_TEXTURE_2D, App.textureName.get(0));
+            gl4.glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+            gl4.glBindVertexArray(0);
+        }
+    }
+
+    private FloatBuffer getCurrentViewProjectionMatrix(int eye) {
+            
+        return App.projection[eye]
+                .mul(App.eyePos[eye], mvp)
+                .mul(App.hmdPose)
+                .toDfb(matBuffer);        
     }
 }

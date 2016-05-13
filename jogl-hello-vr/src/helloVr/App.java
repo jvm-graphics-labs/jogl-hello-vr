@@ -6,17 +6,25 @@
 package helloVr;
 
 import com.jogamp.newt.Display;
+import com.jogamp.newt.MonitorDevice;
 import com.jogamp.newt.NewtFactory;
 import com.jogamp.newt.Screen;
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.opengl.GLWindow;
 import static com.jogamp.opengl.GL.GL_ARRAY_BUFFER;
 import static com.jogamp.opengl.GL.GL_CLAMP_TO_EDGE;
+import static com.jogamp.opengl.GL.GL_COLOR_BUFFER_BIT;
 import static com.jogamp.opengl.GL.GL_DONT_CARE;
+import static com.jogamp.opengl.GL.GL_DRAW_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_ELEMENT_ARRAY_BUFFER;
 import static com.jogamp.opengl.GL.GL_FLOAT;
+import static com.jogamp.opengl.GL.GL_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_LINEAR;
 import static com.jogamp.opengl.GL.GL_LINEAR_MIPMAP_LINEAR;
 import static com.jogamp.opengl.GL.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
+import static com.jogamp.opengl.GL.GL_MULTISAMPLE;
+import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
 import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MAG_FILTER;
@@ -27,6 +35,8 @@ import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import static com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT_SYNCHRONOUS;
 import static com.jogamp.opengl.GL2ES2.GL_FRAGMENT_SHADER;
 import static com.jogamp.opengl.GL2ES2.GL_VERTEX_SHADER;
+import com.jogamp.opengl.GL2ES3;
+import static com.jogamp.opengl.GL2ES3.GL_COLOR;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
@@ -40,7 +50,6 @@ import com.jogamp.opengl.util.glsl.ShaderProgram;
 import glm.mat._4.Mat4;
 import glm.vec._2.Vec2;
 import glm.vec._2.i.Vec2i;
-import glm.vec._3.i.Vec3i;
 import glutil.BufferUtils;
 import glutil.GlDebugOutput;
 import java.io.IOException;
@@ -55,46 +64,50 @@ import jopenvr.COpenVRContext;
 import jopenvr.DistortionCoordinates_t;
 import jopenvr.HmdMatrix34_t;
 import jopenvr.HmdMatrix44_t;
+import jopenvr.IVRCompositor;
 import jopenvr.VR;
 import jopenvr.IVRSystem;
+import jopenvr.Texture_t;
+import static jopenvr.VR.IVRSystem_Version;
+import static jopenvr.VR.VR_IsInterfaceVersionValid;
 
 /**
  *
  * @author GBarbieri
  */
-public class MainApplication implements GLEventListener {
+public class App implements GLEventListener, KeyListener {
 
-    public static GLWindow glWindow;
-    public static Animator animator;
-    private final String TEXTURE_PATH = "/asset/cube_texture.png", SHADERS_ROOT = "/helloVr/shaders";
-    private final String[] SHADERS_NAME = {"scene", "controller", "render-model", "distortion"};
+    private static GLWindow glWindow;
+    private static Animator animator;
+    private static final boolean debugOpenGL = false;
+    private static Vec2i windowSize = new Vec2i(1280, 720);
 
     public static void main(String[] args) {
 
-        MainApplication app = new MainApplication();
-
-        app.initialize();
+        App app = new App();
 
         // Loading the SteamVR Runtime
         IntBuffer error = GLBuffers.newDirectIntBuffer(new int[]{VR.EVRInitError.VRInitError_None});
-//        app.hmd = VR2.VR_Init(error, VR2.EVRApplicationType.VRApplication_Scene);
+        app.hmd = VR.VR_Init(error, VR.EVRApplicationType.VRApplication_Scene);
 
-        HmdMatrix44_t mat = app.hmd.GetProjectionMatrix.apply(0, app.nearClip, app.farClip,
-                VR.EGraphicsAPIConvention.API_OpenGL);
-
+//        HmdMatrix44_t mat = app.hmd.GetProjectionMatrix.apply(0, app.nearClip, app.farClip,
+//                VR.EGraphicsAPIConvention.API_OpenGL);
         if (error.get(0) != VR.EVRInitError.VRInitError_None) {
 
+            app.hmd = null;
             String s = "Unable to init VR runtime: " + VR.VR_GetVRInitErrorAsEnglishDescription(error.get(0));
             throw new Error("VR_Init Failed, " + s);
         }
-
+        System.out.println(""+VR_IsInterfaceVersionValid(VR.IVRCompositor_Version));
+        compositor = new IVRCompositor(VR.VR_GetGenericInterface(VR.IVRCompositor_Version, error));
+        System.out.println("error "+error.get(0) );
         Display display = NewtFactory.createDisplay(null);
         Screen screen = NewtFactory.createScreen(display, 0);
         GLProfile glProfile = GLProfile.get(GLProfile.GL4);
         GLCapabilities glCapabilities = new GLCapabilities(glProfile);
         glWindow = GLWindow.create(screen, glCapabilities);
 
-        glWindow.setSize(app.windowSize.x, app.windowSize.y);
+        glWindow.setSize(windowSize.x, windowSize.y);
         glWindow.setPosition(50, 50);
         glWindow.setUndecorated(false);
         glWindow.setAlwaysOnTop(false);
@@ -103,31 +116,34 @@ public class MainApplication implements GLEventListener {
         glWindow.confinePointer(false);
         glWindow.setTitle("Hello VR");
 
-        if (app.debugOpenGL) {
+        if (debugOpenGL) {
             glWindow.setContextCreationFlags(GLContext.CTX_OPTION_DEBUG);
         }
         glWindow.setVisible(true);
-        if (app.debugOpenGL) {
+        if (debugOpenGL) {
             glWindow.getContext().addGLDebugListener(new GlDebugOutput());
         }
 
         glWindow.addGLEventListener(app);
-//        glWindow.addKeyListener(mainApplication);
+        glWindow.addKeyListener(app);
 
         animator = new Animator(glWindow);
         animator.start();
     }
 
-    private interface Program {
+    private final String TEXTURE_PATH = "/helloVr/asset/cube_texture.png", SHADERS_ROOT = "/helloVr/shaders";
+    private final String[] SHADERS_NAME = {"scene", "controller", "render-model", "distortion"};
+
+    interface Program {
 
         public static final int SCENE = 0;
-        public static final int LENS = 1;
-        public static final int CONTROLLER_TRANSFORM = 2;
-        public static final int RENDER_MODEL = 3;
+        public static final int CONTROLLER_TRANSFORM = 1;
+        public static final int RENDER_MODEL = 2;
+        public static final int LENS = 3;
         public static final int MAX = 4;
     }
 
-    private interface VertexArray {
+    interface VertexArray {
 
         public static final int SCENE = 0;
         public static final int LENS = 1;
@@ -143,21 +159,26 @@ public class MainApplication implements GLEventListener {
     }
 
     private IVRSystem hmd;
-    private Vec2i windowSize = new Vec2i(1280, 720), renderSize = new Vec2i();
-    private boolean vBlank = false, debugOpenGL = false;
+    private Vec2i renderSize = new Vec2i();
+    private boolean vBlank = false;
     private int vertexCount = 0, indexSize;
     private float nearClip = 0.1f, farClip = 30.0f;
-    private int[] programName = new int[Program.MAX], matrixLocation = new int[Program.MAX];
-    private IntBuffer textureName = GLBuffers.newDirectIntBuffer(1),
-            vertexArrayName = GLBuffers.newDirectIntBuffer(VertexArray.MAX),
-            buffername = GLBuffers.newDirectIntBuffer(Buffer.MAX);
-    private Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max];
+    private IntBuffer buffername = GLBuffers.newDirectIntBuffer(Buffer.MAX);
     private FramebufferDesc leftEyeDesc, rightEyeDesc;
+    private Scene scene;
+
+    static FloatBuffer clearColor = GLBuffers.newDirectFloatBuffer(4),
+            clearDepth = GLBuffers.newDirectFloatBuffer(new float[]{1.0f});
+    static boolean showCubes = true;
+    static int[] programName = new int[Program.MAX], matrixLocation = new int[Program.MAX];
+    static Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max];
+    static Mat4 hmdPose = new Mat4();
+    static IntBuffer textureName = GLBuffers.newDirectIntBuffer(1),
+            vertexArrayName = GLBuffers.newDirectIntBuffer(VertexArray.MAX);
+    static IVRCompositor compositor;
 
     @Override
     public void init(GLAutoDrawable drawable) {
-
-        initialize();
 
         GL4 gl4 = drawable.getGL().getGL4();
 
@@ -168,15 +189,17 @@ public class MainApplication implements GLEventListener {
             gl4.glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, null, true);
             gl4.glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         }
-        
+
         boolean validated = createAllShaders(gl4);
-        
+
         if (validated) {
-            validated = setupTextureMaps(gl4);
+//            validated = setupTextureMaps(gl4);
         }
-        if (validated) {
-            validated = setupCameras();
-        }
+
+        setupCameras();
+
+        scene = new Scene(gl4);
+
         if (validated) {
             validated = setupStereoRenderTargets(gl4);
         }
@@ -186,41 +209,9 @@ public class MainApplication implements GLEventListener {
         if (validated) {
             validated = setupRenderModels(gl4);
         }
-        if(!validated){
+        if (!validated) {
 //            animator.remove(glWindow);
 //            glWindow.destroy();
-        }
-    }
-
-    public boolean initialize() {
-
-        IntBuffer hmdErrorStore = GLBuffers.newDirectIntBuffer(1);
-        VR.VR_InitInternal(hmdErrorStore, VR.EVRApplicationType.VRApplication_Scene);
-
-        if (hmdErrorStore.get(0) == 0) {
-            // ok, try and get the vrsystem pointer..
-            hmd = new IVRSystem(VR.VR_GetGenericInterface(VR.IVRSystem_Version, hmdErrorStore));
-//            hmd = new IVRSystem();
-            COpenVRContext ctx = new COpenVRContext.ByValue();
-            ctx.clear();
-        }
-        if (hmd == null || hmdErrorStore.get(0) != 0) {
-            System.out.println("OpenVR Initialize Result: " + VR.VR_GetVRInitErrorAsEnglishDescription(hmdErrorStore.get(0)).getString(0));
-            return false;
-        } else {
-            System.out.println("OpenVR initialized & VR connected.");
-
-            hmd.setAutoSynch(false);
-            hmd.read();
-
-            // init controllers for the first time
-//            VRInput._updateConnectedControllers();
-//
-//            // init bounds & chaperone info
-//            VRBounds.init();
-//            
-//            initSuccess = true;
-            return true;
         }
     }
 
@@ -295,7 +286,7 @@ public class MainApplication implements GLEventListener {
             gl4.glBindTexture(GL_TEXTURE_2D, 0);
 
         } catch (IOException ex) {
-            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         }
         return true;
     }
@@ -478,30 +469,103 @@ public class MainApplication implements GLEventListener {
 
         gl4.glBindBuffer(GL_ARRAY_BUFFER, 0);
         gl4.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
+
         BufferUtils.destroyDirectBuffer(vertexBuffer);
         BufferUtils.destroyDirectBuffer(indexBuffer);
-        
+
         return true;
     }
 
     private boolean setupRenderModels(GL4 gl4) {
         return true;
     }
-    
-    @Override
-    public void dispose(GLAutoDrawable drawable) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
 
     @Override
     public void display(GLAutoDrawable drawable) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
+        GL4 gl4 = drawable.getGL().getGL4();
+
+        clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
+        gl4.glClearBufferfv(GL2ES3.GL_COLOR, 0, clearColor);
+
+        renderStereoTargets(gl4);
+
+        Texture_t leftEyeTexture = new Texture_t(
+                leftEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE), 
+                VR.EGraphicsAPIConvention.API_OpenGL, 
+                VR.EColorSpace.ColorSpace_Gamma);
+        compositor.Submit.apply(VR.EVREye.Eye_Left, leftEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+        Texture_t rightEyeTexture = new Texture_t(
+                rightEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE), 
+                VR.EGraphicsAPIConvention.API_OpenGL, 
+                VR.EColorSpace.ColorSpace_Gamma);
+        compositor.Submit.apply(VR.EVREye.Eye_Right, rightEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+    }
+
+    private void renderStereoTargets(GL4 gl4) {
+
+        clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);  // nice background color, but not black
+        gl4.glEnable(GL_MULTISAMPLE);
+
+        // Left Eye
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+        scene.render(gl4, VR.EVREye.Eye_Left);
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        gl4.glDisable(GL_MULTISAMPLE);
+
+        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+
+        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
+                GL_COLOR_BUFFER_BIT,
+                GL_LINEAR);
+
+        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+        gl4.glEnable(GL_MULTISAMPLE);
+
+        // Right Eye
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+        scene.render(gl4, VR.EVREye.Eye_Right);
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        gl4.glDisable(GL_MULTISAMPLE);
+
+        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+
+        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
+                GL_COLOR_BUFFER_BIT,
+                GL_LINEAR);
+
+        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+
+    @Override
+    public void dispose(GLAutoDrawable drawable) {
+        System.exit(0);
     }
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
     }
 
+    @Override
+    public void keyPressed(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_ESCAPE:
+                animator.remove(glWindow);
+                glWindow.destroy();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+    }
 }
