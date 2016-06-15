@@ -78,8 +78,9 @@ public class Scene {
         gl4.glBindBuffer(GL_ARRAY_BUFFER, vertexBufferName.get(0));
         gl4.glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity(), vertexBuffer, GL_STATIC_DRAW);
 
-        int stride = VertexDataLens.SIZE, offset = 0;
-
+        //int stride = VertexDataLens.SIZE, offset = 0;
+        int stride = 5 * Float.BYTES, offset = 0; 
+        
         gl4.glEnableVertexAttribArray(Semantic.Attr.POSITION);
         gl4.glVertexAttribPointer(Semantic.Attr.POSITION, 3, GL_FLOAT, false, stride, offset);
 
@@ -167,7 +168,15 @@ public class Scene {
             gl4.glUniformMatrix4fv(App.matrixLocation[App.Program.SCENE], 1, false, getCurrentViewProjectionMatrix(eye));
             gl4.glBindVertexArray(App.vertexArrayName.get(App.VertexArray.SCENE));
             gl4.glBindTexture(GL_TEXTURE_2D, App.textureName.get(0));
+            
             gl4.glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+            int error = gl4.glGetError();
+            if (error != GL4.GL_NO_ERROR) {
+            	//msg GL_INVALID_OPERATION error generated. Array object is not active.
+                System.out.println("GL error " + error);
+            }
+            
+            
             gl4.glBindVertexArray(0);
         }
     }
