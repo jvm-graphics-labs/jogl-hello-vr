@@ -41,48 +41,45 @@ public class FramebufferDesc {
             textureName = GLBuffers.newDirectIntBuffer(Target.MAX),
             framebufferName = GLBuffers.newDirectIntBuffer(Target.MAX);
 
-    public static FramebufferDesc create(GL4 gl4, Vec2i renderSize) {
+    public boolean create(GL4 gl4, Vec2i size) {
 
-        FramebufferDesc framebufferDesc = new FramebufferDesc();
+        gl4.glGenFramebuffers(Target.MAX, framebufferName);
+        gl4.glGenRenderbuffers(1, depthBufferName);
+        gl4.glGenTextures(Target.MAX, textureName);
 
-        gl4.glGenFramebuffers(Target.MAX, framebufferDesc.framebufferName);
-        gl4.glGenRenderbuffers(1, framebufferDesc.depthBufferName);
-        gl4.glGenTextures(Target.MAX, framebufferDesc.textureName);
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, framebufferName.get(Target.RENDER));
 
-        gl4.glBindFramebuffer(GL_FRAMEBUFFER, framebufferDesc.framebufferName.get(Target.RENDER));
+        gl4.glBindRenderbuffer(GL_RENDERBUFFER, depthBufferName.get(0));
+        gl4.glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT, size.x, size.y);
+        gl4.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBufferName.get(0));
 
-        gl4.glBindRenderbuffer(GL_RENDERBUFFER, framebufferDesc.depthBufferName.get(0));
-        gl4.glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT, renderSize.x, renderSize.y);
-        gl4.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                framebufferDesc.depthBufferName.get(0));
-
-        gl4.glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, framebufferDesc.textureName.get(Target.RENDER));
-        gl4.glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA8, renderSize.x, renderSize.y, true);
+        gl4.glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureName.get(Target.RENDER));
+        gl4.glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA8, size.x, size.y, true);
         gl4.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE,
-                framebufferDesc.textureName.get(Target.RENDER), 0);
+                textureName.get(Target.RENDER), 0);
 
         if (!checkFramebufferStatus(gl4)) {
-            return null;
+            return false;
         }
 
-        gl4.glBindFramebuffer(GL_FRAMEBUFFER, framebufferDesc.framebufferName.get(Target.RESOLVE));
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, framebufferName.get(Target.RESOLVE));
 
-        gl4.glBindTexture(GL_TEXTURE_2D, framebufferDesc.textureName.get(Target.RESOLVE));
+        gl4.glBindTexture(GL_TEXTURE_2D, textureName.get(Target.RESOLVE));
         gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-        gl4.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, renderSize.x, renderSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
-        gl4.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                framebufferDesc.textureName.get(Target.RESOLVE), 0);
+        gl4.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+        gl4.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 
+                textureName.get(Target.RESOLVE), 0);
 
         gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         if (!checkFramebufferStatus(gl4)) {
-            return null;
+            return false;
         }
 
         gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        return framebufferDesc;
+        return true;
     }
 
     private static boolean checkFramebufferStatus(GL4 gl4) {
@@ -95,13 +92,13 @@ public class FramebufferDesc {
         }
         return true;
     }
-    
-    private boolean dispose(GL4 gl4) {
-        
+
+    private boolean delete(GL4 gl4) {
+
         gl4.glDeleteFramebuffers(Target.MAX, framebufferName);
         gl4.glDeleteTextures(Target.MAX, textureName);
-        gl4.glDeleteBuffers(1, depthBufferName);
-        
+        gl4.glDeleteRenderbuffers(1, depthBufferName);
+
         return true;
     }
 }
