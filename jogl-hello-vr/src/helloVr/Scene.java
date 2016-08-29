@@ -158,16 +158,16 @@ public class Scene {
 
     void render(GL4 gl4, int eye) {
 
-        gl4.glClearBufferfv(GL_COLOR, 0, MainApplication.clearColor);
-        gl4.glClearBufferfv(GL_DEPTH, 0, MainApplication.clearDepth);
+        gl4.glClearBufferfv(GL_COLOR, 0, Application.clearColor);
+        gl4.glClearBufferfv(GL_DEPTH, 0, Application.clearDepth);
         gl4.glEnable(GL_DEPTH_TEST);
 
-        if (MainApplication.showCubes) {
+        if (Application.showCubes) {
 
-            gl4.glUseProgram(MainApplication.programName[MainApplication.Program.SCENE]);
-            gl4.glUniformMatrix4fv(MainApplication.matrixLocation[MainApplication.Program.SCENE], 1, false, getCurrentViewProjectionMatrix(eye));
-            gl4.glBindVertexArray(MainApplication.vertexArrayName.get(MainApplication.VertexArray.SCENE));
-            gl4.glBindTexture(GL_TEXTURE_2D, MainApplication.textureName.get(0));
+            gl4.glUseProgram(Application.programName[Application.Program.SCENE]);
+            gl4.glUniformMatrix4fv(Application.matrixLocation[Application.Program.SCENE], 1, false, getCurrentViewProjectionMatrix(eye));
+            gl4.glBindVertexArray(Application.vertexArrayName.get(Application.VertexArray.SCENE));
+            gl4.glBindTexture(GL_TEXTURE_2D, Application.textureName.get(0));
             
             gl4.glDrawArrays(GL_TRIANGLES, 0, vertexCount);
             int error = gl4.glGetError();
@@ -183,9 +183,9 @@ public class Scene {
 
     private FloatBuffer getCurrentViewProjectionMatrix(int eye) {
             
-        return MainApplication.projection[eye]
-                .mul(MainApplication.eyePos[eye], mvp)
-                .mul(MainApplication.hmdPose)
+        return Application.projection[eye]
+                .mul(Application.eyePos[eye], mvp)
+                .mul(Application.hmdPose)
                 .toDfb(matBuffer);        
     }
 }

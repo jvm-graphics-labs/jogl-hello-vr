@@ -13,14 +13,14 @@ import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.util.GLBuffers;
 import glm.vec._2.Vec2;
 import glutil.BufferUtils;
-import static helloVr.MainApplication.vertexArrayName;
+import static helloVr.Application.vertexArrayName;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import jopenvr.DistortionCoordinates_t;
-import jopenvr.IVRSystem;
-import jopenvr.VR;
+import vr.DistortionCoordinates_t;
+import vr.IVRSystem;
+import vr.VR;
 import one.util.streamex.IntStreamEx;
 
 /**

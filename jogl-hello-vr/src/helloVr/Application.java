@@ -6,15 +6,11 @@
 package helloVr;
 
 import static com.jogamp.opengl.GL.GL_CLAMP_TO_EDGE;
-import static com.jogamp.opengl.GL.GL_COLOR_BUFFER_BIT;
 import static com.jogamp.opengl.GL.GL_DONT_CARE;
-import static com.jogamp.opengl.GL.GL_DRAW_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_LINEAR;
 import static com.jogamp.opengl.GL.GL_LINEAR_MIPMAP_LINEAR;
 import static com.jogamp.opengl.GL.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
-import static com.jogamp.opengl.GL.GL_MULTISAMPLE;
-import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MAG_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MAX_ANISOTROPY_EXT;
@@ -22,8 +18,6 @@ import static com.jogamp.opengl.GL.GL_TEXTURE_MIN_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_S;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import static com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT_SYNCHRONOUS;
-import static com.jogamp.opengl.GL2ES2.GL_FRAGMENT_SHADER;
-import static com.jogamp.opengl.GL2ES2.GL_VERTEX_SHADER;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;
@@ -37,9 +31,11 @@ import com.jogamp.newt.Screen;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.opengl.GLWindow;
+import static com.jogamp.opengl.GL.GL_COLOR_BUFFER_BIT;
+import static com.jogamp.opengl.GL.GL_DRAW_FRAMEBUFFER;
 import static com.jogamp.opengl.GL.GL_NO_ERROR;
-import com.jogamp.opengl.GL2ES3;
-import com.jogamp.opengl.GL3;
+import static com.jogamp.opengl.GL.GL_READ_FRAMEBUFFER;
+import static com.jogamp.opengl.GL2ES3.GL_COLOR;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
@@ -48,33 +44,27 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.util.Animator;
 import com.jogamp.opengl.util.GLBuffers;
-import com.jogamp.opengl.util.glsl.ShaderCode;
-import com.jogamp.opengl.util.glsl.ShaderProgram;
 
 import glm.mat._4.Mat4;
-import glm.vec._2.Vec2;
 import glm.vec._2.i.Vec2i;
 import glutil.BufferUtils;
 import glutil.GlDebugOutput;
-import java.util.ArrayList;
-import java.util.List;
 import jgli.Texture2d;
 //import jopenvr.DistortionCoordinates_t;
-import jopenvr.HmdMatrix34_t;
-import jopenvr.HmdMatrix44_t;
-import jopenvr.IVRCompositor;
-import jopenvr.IVRSystem;
-import jopenvr.Texture_t;
-import jopenvr.TrackedDevicePose_t;
-import jopenvr.VR;
-import one.util.streamex.IntStreamEx;
+import vr.HmdMatrix34_t;
+import vr.HmdMatrix44_t;
+import vr.IVRCompositor_FnTable;
+import vr.IVRSystem;
+import vr.Texture_t;
+import vr.TrackedDevicePose_t;
+import vr.VR;
 import one.util.streamex.StreamEx;
 
 /**
  *
  * @author GBarbieri
  */
-public class MainApplication implements GLEventListener, KeyListener {
+public class Application implements GLEventListener, KeyListener {
 
     private static GLWindow glWindow;
     private static Animator animator;
@@ -83,7 +73,7 @@ public class MainApplication implements GLEventListener, KeyListener {
 
     public static void main(String[] args) {
 
-        MainApplication app = new MainApplication();
+        Application app = new Application();
 
         glWindow.addGLEventListener(app);
         glWindow.addKeyListener(app);
@@ -123,10 +113,11 @@ public class MainApplication implements GLEventListener, KeyListener {
 
     private Vec2i renderSize = new Vec2i();
     private boolean vBlank = false;
+    private boolean glFinishHack = true;
     private int vertexCount = 0, indexSize;
     private float nearClip = 0.1f, farClip = 30.0f;
     private IntBuffer buffername = GLBuffers.newDirectIntBuffer(Buffer.MAX);
-    private FramebufferDesc leftEyeDesc, rightEyeDesc;
+    private FramebufferDesc leftEyeDesc = new FramebufferDesc(), rightEyeDesc = new FramebufferDesc();
     private Scene scene;
 
     static FloatBuffer clearColor = GLBuffers.newDirectFloatBuffer(4),
@@ -137,12 +128,15 @@ public class MainApplication implements GLEventListener, KeyListener {
     static Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max];
     static Mat4 hmdPose = new Mat4();
     static IntBuffer textureName = GLBuffers.newDirectIntBuffer(1),
-            vertexArrayName = GLBuffers.newDirectIntBuffer(VertexArray.MAX);
-    static IVRCompositor compositor;
-    
+            vertexArrayName = GLBuffers.newDirectIntBuffer(VertexArray.MAX),
+            errorBuffer = GLBuffers.newDirectIntBuffer(1);
+    private IVRCompositor_FnTable compositor;
+
+    private Texture_t leftEyeTexture = new Texture_t(), rightEyeTexture = new Texture_t();
+
     private Distortion distortion;
 
-    public MainApplication() {
+    public Application() {
 
         Display display = NewtFactory.createDisplay(null);
         Screen screen = NewtFactory.createScreen(display, 0);
@@ -167,6 +161,7 @@ public class MainApplication implements GLEventListener, KeyListener {
             glWindow.getContext().addGLDebugListener(new GlDebugOutput());
         }
 
+//        glWindow.setAutoSwapBufferMode(false);
         animator = new Animator(glWindow);
         animator.start();
     }
@@ -175,38 +170,18 @@ public class MainApplication implements GLEventListener, KeyListener {
     public void init(GLAutoDrawable drawable) {
 
         // Loading the SteamVR Runtime
-        IntBuffer error = GLBuffers.newDirectIntBuffer(new int[]{VR.EVRInitError.VRInitError_None});
-        hmd = VR.VR_Init(error, VR.EVRApplicationType.VRApplication_Scene);
+        hmd = VR.VR_Init(errorBuffer, VR.EVRApplicationType.VRApplication_Scene);
         //        HmdMatrix44_t mat = app.hmd.GetProjectionMatrix.apply(0, app.nearClip, app.farClip,
         //                VR.EGraphicsAPIConvention.API_OpenGL);
-        if (error.get(0) != VR.EVRInitError.VRInitError_None) {
+        if (errorBuffer.get(0) != VR.EVRInitError.VRInitError_None) {
             hmd = null;
-            String s = "Unable to init VR runtime: " + VR.VR_GetVRInitErrorAsEnglishDescription(error.get(0));
+            String s = "Unable to init VR runtime: " + VR.VR_GetVRInitErrorAsEnglishDescription(errorBuffer.get(0));
             throw new Error("VR_Init Failed, " + s);
         }
 
-        compositor = new IVRCompositor(VR.VR_GetGenericInterface(VR.IVRCompositor_Version, error));
-        compositor.read();
-
-        //based on initialize from https://github.com/phr00t/jMonkeyVR/blob/76acf51383d9325b493aa8648494850d184e7a2b/src/jmevr/input/OpenVR.java
-        //not sure main method is my favorite place for all this stuff, TODO: cleanup (when I'm dead)
-        hmdTrackedDevicePoseReference = new TrackedDevicePose_t.ByReference();
-        hmdTrackedDevicePoses = (TrackedDevicePose_t[]) hmdTrackedDevicePoseReference.toArray(VR.k_unMaxTrackedDeviceCount);
-        poseMatrices = new Mat4[VR.k_unMaxTrackedDeviceCount];
-        for (int i = 0; i < poseMatrices.length; i++) {
-            poseMatrices[i] = new Mat4();
-        }
-        //hmdPose = new Mat4();
-
-        // disable all this stuff which kills performance
-        hmdTrackedDevicePoseReference.setAutoRead(false);
-        hmdTrackedDevicePoseReference.setAutoWrite(false);
-        hmdTrackedDevicePoseReference.setAutoSynch(false);
-        for (int i = 0; i < VR.k_unMaxTrackedDeviceCount; i++) {
-            hmdTrackedDevicePoses[i].setAutoRead(false);
-            hmdTrackedDevicePoses[i].setAutoWrite(false);
-            hmdTrackedDevicePoses[i].setAutoSynch(false);
-        }
+//        hmd.setAutoSynch(false);
+        hmd.read();
+//        hmd.write();
 
         //TODO:
         // init controllers for the first time
@@ -219,8 +194,37 @@ public class MainApplication implements GLEventListener, KeyListener {
 
         if (!initGL(gl4)) {
             System.err.println("Unable to initialize OpenGL!");
-            //TODO exit
+            quit();
         }
+
+        if (!initCompositor()) {
+            System.err.println("Failed to initialize VR Compositor!");
+            quit();
+        }
+
+        //based on initialize from https://github.com/phr00t/jMonkeyVR/blob/76acf51383d9325b493aa8648494850d184e7a2b/src/jmevr/input/OpenVR.java
+        //not sure main method is my favorite place for all this stuff, TODO: cleanup (when I'm dead)
+//        hmdTrackedDevicePoseReference = new TrackedDevicePose_t.ByReference();
+//        hmdTrackedDevicePoses = (TrackedDevicePose_t[]) hmdTrackedDevicePoseReference.toArray(VR.k_unMaxTrackedDeviceCount);
+//        poseMatrices = new Mat4[VR.k_unMaxTrackedDeviceCount];
+//        for (int i = 0; i < poseMatrices.length; i++) {
+//            poseMatrices[i] = new Mat4();
+//        }
+//        //hmdPose = new Mat4();
+//
+//        // disable all this stuff which kills performance
+//        hmdTrackedDevicePoseReference.setAutoRead(false);
+//        hmdTrackedDevicePoseReference.setAutoWrite(false);
+//        hmdTrackedDevicePoseReference.setAutoSynch(false);
+//        for (int i = 0; i < VR.k_unMaxTrackedDeviceCount; i++) {
+//            hmdTrackedDevicePoses[i].setAutoRead(false);
+//            hmdTrackedDevicePoses[i].setAutoWrite(false);
+//            hmdTrackedDevicePoses[i].setAutoSynch(false);
+//        }
+        System.out.println("IsHmdPresent: " + (VR.VR_IsHmdPresent() == 1));
+        System.out.println("IsRuntimeInstalled: " + (VR.VR_IsRuntimeInstalled() == 1));
+        System.out.println("IsInterfaceVersionValid: " + (VR.VR_IsInterfaceVersionValid(VR.IVRCompositor_Version) == 1));
+
         checkError(gl4, "init");
     }
 
@@ -241,8 +245,27 @@ public class MainApplication implements GLEventListener, KeyListener {
         setupCameras();
         setupStereoRenderTargets(gl4);
         setupDistortion(gl4);
-        
+
         setupRenderModels(gl4);
+
+        leftEyeTexture.eColorSpace = VR.EColorSpace.ColorSpace_Gamma;
+        leftEyeTexture.eType = VR.EGraphicsAPIConvention.API_OpenGL;
+//        leftEyeTexture.setAutoSynch(false);
+//        leftEyeTexture.setAutoRead(false);
+//        leftEyeTexture.setAutoWrite(false);
+        leftEyeTexture.handle = leftEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE);
+
+        rightEyeTexture.eColorSpace = VR.EColorSpace.ColorSpace_Gamma;
+        rightEyeTexture.eType = VR.EGraphicsAPIConvention.API_OpenGL;
+//        rightEyeTexture.setAutoSynch(false);
+//        rightEyeTexture.setAutoRead(false);
+//        rightEyeTexture.setAutoWrite(false);
+        rightEyeTexture.handle = rightEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE);
+
+        leftEyeTexture.write();
+        rightEyeTexture.write();
+//        leftEyeTexture.read();
+//        rightEyeTexture.read();
 
         return true;
     }
@@ -308,7 +331,7 @@ public class MainApplication implements GLEventListener, KeyListener {
             gl4.glBindTexture(GL_TEXTURE_2D, 0);
 
         } catch (IOException ex) {
-            Logger.getLogger(MainApplication.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Application.class.getName()).log(Level.SEVERE, null, ex);
         }
         return true;
     }
@@ -339,9 +362,7 @@ public class MainApplication implements GLEventListener, KeyListener {
         BufferUtils.destroyDirectBuffer(width);
         BufferUtils.destroyDirectBuffer(height);
 
-        leftEyeDesc = new FramebufferDesc();
         leftEyeDesc.create(gl4, renderSize);
-        rightEyeDesc = new FramebufferDesc();
         rightEyeDesc.create(gl4, renderSize);
 
         return true;
@@ -350,7 +371,7 @@ public class MainApplication implements GLEventListener, KeyListener {
     private void setupDistortion(GL4 gl4) {
         if (hmd == null) {
             return;
-        }        
+        }
         distortion = new Distortion();
         distortion.setup(gl4, hmd);
     }
@@ -373,6 +394,22 @@ public class MainApplication implements GLEventListener, KeyListener {
                 mat.m[4], mat.m[5], mat.m[6], mat.m[7],
                 mat.m[8], mat.m[9], mat.m[10], mat.m[11],
                 0, 0, 0, 1).inverse(); //XXX: garbage
+    }
+
+    private boolean initCompositor() {
+
+        compositor = new IVRCompositor_FnTable(VR.VR_GetGenericInterface(VR.IVRCompositor_Version, errorBuffer));
+        compositor.setAutoSynch(false); // TODO necessary?
+        compositor.read();
+//        compositor.write();
+
+        System.out.println("compositor.CanRenderScene: " + (compositor.CanRenderScene.apply() == 1));
+
+        if (compositor == null || errorBuffer.get(0) != VR.EVRInitError.VRInitError_None) {
+            System.err.println("Compositor initialization failed. See log file for details");
+            return false;
+        }
+        return true;
     }
 
     void convertSteamVRMatrix3ToMat4(HmdMatrix34_t mat, Mat4 target) {
@@ -422,83 +459,117 @@ public class MainApplication implements GLEventListener, KeyListener {
 
         GL4 gl4 = drawable.getGL().getGL4();
 
-        renderStereoTargets(gl4);
+        // for now as fast as possible
+        if (hmd != null) {
+//		DrawControllers();
+            renderStereoTargets(gl4);
+//		RenderDistortion();
 
-        Texture_t leftEyeTexture = new Texture_t(
-                leftEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE),
-                VR.EGraphicsAPIConvention.API_OpenGL,
-                VR.EColorSpace.ColorSpace_Gamma);
-        compositor.Submit.apply(VR.EVREye.Eye_Left, leftEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
-        Texture_t rightEyeTexture = new Texture_t(
-                rightEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE),
-                VR.EGraphicsAPIConvention.API_OpenGL,
-                VR.EColorSpace.ColorSpace_Gamma);
-        compositor.Submit.apply(VR.EVREye.Eye_Right, rightEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
-        gl4.glFinish();
+//            leftEyeTexture = new Texture_t(leftEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE),
+//                    VR.EGraphicsAPIConvention.API_OpenGL, VR.EColorSpace.ColorSpace_Gamma);
+//            compositor.Submit.apply(VR.EVREye.Eye_Left, leftEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+//            rightEyeTexture = new Texture_t(rightEyeDesc.textureName.get(FramebufferDesc.Target.RESOLVE),
+//                    VR.EGraphicsAPIConvention.API_OpenGL, VR.EColorSpace.ColorSpace_Gamma);
+//            compositor.Submit.apply(VR.EVREye.Eye_Right, rightEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+            compositor.Submit.apply(VR.EVREye.Eye_Left, leftEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+            compositor.Submit.apply(VR.EVREye.Eye_Right, rightEyeTexture, null, VR.EVRSubmitFlags.Submit_Default);
+        }
 
-        //seems to be introducing nasty tearing artifact, although note original c++ sample does SDL_GL_SwapWindow here
-        //drawable.swapBuffers();
-        // according to c++ sample,
-        // "We want to make sure the glFinish waits for the entire present to complete, not just the submission
-        // of the command. So, we do a clear here right here so the glFinish will wait fully for the swap."
-        clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
-        clearColor.put(0, 0.5f + (float) (0.5 * Math.sin(System.currentTimeMillis() / 1000.)));
-        gl4.glClearBufferfv(GL2ES3.GL_COLOR, 0, clearColor);
+        if (vBlank && glFinishHack) {
+            /**
+             * $ HACKHACK. From gpuview profiling, it looks like there is a bug where two renders and a present
+             * happen right before and after the vsync causing all kinds of jittering issues. This glFinish()
+             * appears to clear that up. Temporary fix while I try to get nvidia to investigate this problem.
+             * 1/29/2014 mikesart.
+             */
+//            gl4.glFinish();
+        }
 
-        //scene.render(gl4, 0); //PJT trying to get something to draw on the main window...
-        // Flush and wait for swap.
-        gl4.glFlush();
-        gl4.glFinish();
+        // SwapWindow
+        {
+//            glWindow.swapBuffers();
+        }
+        // Clear
+        {
+            gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+            gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-        updateHMDMatrixPose();
+        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
+                GL_COLOR_BUFFER_BIT,
+                GL_LINEAR);
 
+            gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+//        glWindow.swapBuffers();
+//
+//        // Flush and wait for swap.
+//        if (vBlank) {
+//            gl4.glFlush();
+//            gl4.glFinish();
+//        }
+
+        // Spew out the controller and pose count whenever they change.
+//	if ( m_iTrackedControllerCount != m_iTrackedControllerCount_Last || m_iValidPoseCount != m_iValidPoseCount_Last )
+//	{
+//		m_iValidPoseCount_Last = m_iValidPoseCount;
+//		m_iTrackedControllerCount_Last = m_iTrackedControllerCount;
+//		
+//		dprintf( "PoseCount:%d(%s) Controllers:%d\n", m_iValidPoseCount, m_strPoseClasses.c_str(), m_iTrackedControllerCount );
+//	}
+//        updateHMDMatrixPose();
         checkError(gl4, "display");
     }
 
     private void renderStereoTargets(GL4 gl4) {
 
         clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);  // nice background color, but not black
-        //clearColor.put(0, 0.5f+(float)(0.5*Math.sin(System.currentTimeMillis()/1000.)));
-        gl4.glEnable(GL_MULTISAMPLE);
+        clearColor.put(0, 0.5f + (float) (0.5 * Math.sin(System.currentTimeMillis() / 1000.)));
+//        gl4.glEnable(GL_MULTISAMPLE);
 
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+        gl4.glClearBufferfv(GL_COLOR, 0, clearColor);
+        gl4.glBindFramebuffer(GL_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+        gl4.glClearBufferfv(GL_COLOR, 0, clearColor);
         // Left Eye
-        gl4.glBindFramebuffer(GL_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
-        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
-        scene.render(gl4, VR.EVREye.Eye_Left);
-        gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//        gl4.glBindFramebuffer(GL_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+//        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+//        scene.render(gl4, VR.EVREye.Eye_Left);
+//        gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        gl4.glDisable(GL_MULTISAMPLE);
-
-        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
-        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
-
-        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
-                GL_COLOR_BUFFER_BIT,
-                GL_LINEAR);
-
-        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-        gl4.glEnable(GL_MULTISAMPLE);
-
-        // Right Eye
-        gl4.glBindFramebuffer(GL_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
-        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
-        //clearColor.put(0, 0.2f);
-        scene.render(gl4, VR.EVREye.Eye_Right);
-        gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        gl4.glDisable(GL_MULTISAMPLE);
-
-        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
-        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
-
-        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
-                GL_COLOR_BUFFER_BIT,
-                GL_LINEAR);
-
-        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+//        gl4.glDisable(GL_MULTISAMPLE);
+//
+//        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+//        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, leftEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+//
+//        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
+//                GL_COLOR_BUFFER_BIT,
+//                GL_LINEAR);
+//
+//        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+//        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+//
+//        gl4.glEnable(GL_MULTISAMPLE);
+//
+//        // Right Eye
+//        gl4.glBindFramebuffer(GL_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+//        gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+//        //clearColor.put(0, 0.2f);
+//        scene.render(gl4, VR.EVREye.Eye_Right);
+//        gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//
+//        gl4.glDisable(GL_MULTISAMPLE);
+//
+//        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RENDER));
+//        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rightEyeDesc.framebufferName.get(FramebufferDesc.Target.RESOLVE));
+//
+//        gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
+//                GL_COLOR_BUFFER_BIT,
+//                GL_LINEAR);
+//
+//        gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+//        gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
     @Override
@@ -518,9 +589,15 @@ public class MainApplication implements GLEventListener, KeyListener {
     public void keyPressed(KeyEvent e) {
         switch (e.getKeyCode()) {
             case KeyEvent.VK_ESCAPE:
-                animator.remove(glWindow);
-                glWindow.destroy();
+                quit();
+                break;
         }
+    }
+
+    private void quit() {
+        animator.remove(glWindow);
+        glWindow.destroy();
+        System.exit(0);
     }
 
     @Override
