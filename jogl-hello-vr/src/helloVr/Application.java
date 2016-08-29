@@ -88,8 +88,9 @@ public class Application implements GLEventListener, KeyListener {
     }
 
     public IVRSystem hmd;
-    private static TrackedDevicePose_t.ByReference hmdTrackedDevicePoseReference;
-    private static TrackedDevicePose_t[] hmdTrackedDevicePoses;
+    private TrackedDevicePose_t.ByReference trackedDevicePosesReference = new TrackedDevicePose_t.ByReference();
+    private TrackedDevicePose_t[] trackedDevicePoses
+            = (TrackedDevicePose_t[]) trackedDevicePosesReference.toArray(VR.k_unMaxTrackedDeviceCount);
     private static Mat4[] poseMatrices;
 
     private Vec2i renderSize = new Vec2i();
@@ -332,8 +333,8 @@ public class Application implements GLEventListener, KeyListener {
         // for now as fast as possible
         if (hmd != null) {
 //		DrawControllers();
-//            renderStereoTargets(gl4);
-//            distortion.render(gl4, this);
+            renderStereoTargets(gl4);
+            distortion.render(gl4, this);
 
             for (int eye = 0; eye < VR.EVREye.Max; eye++) {
                 eyeTexture[eye].set(eyeDesc[eye].textureName.get(FramebufferDesc.Target.RESOLVE),
@@ -358,16 +359,16 @@ public class Application implements GLEventListener, KeyListener {
         }
         // Clear
         {
-            gl4.glBindFramebuffer(GL_FRAMEBUFFER, eyeDesc[0].framebufferName.get(FramebufferDesc.Target.RESOLVE));
-            gl4.glViewport(0, 0, renderSize.x, renderSize.y);
-            clearColor.put(0, 0.95f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
-            gl4.glClearBufferfv(GL_COLOR, 0, clearColor);
-
-            gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, eyeDesc[0].framebufferName.get(FramebufferDesc.Target.RESOLVE));
-            gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
-                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
-            gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//            gl4.glBindFramebuffer(GL_FRAMEBUFFER, eyeDesc[0].framebufferName.get(FramebufferDesc.Target.RESOLVE));
+//            gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+//            clearColor.put(0, 0.95f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
+//            gl4.glClearBufferfv(GL_COLOR, 0, clearColor);
+//
+//            gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, eyeDesc[0].framebufferName.get(FramebufferDesc.Target.RESOLVE));
+//            gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+//            gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
+//                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
+//            gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
             /**
              * We want to make sure the glFinish waits for the entire present to complete, not just the submission
              * of the command. So, we do a clear here right here so the glFinish will wait fully for the swap.
@@ -392,47 +393,9 @@ public class Application implements GLEventListener, KeyListener {
         checkError(gl4, "display");
     }
 
-    void convertSteamVRMatrix3ToMat4(HmdMatrix34_t mat, Mat4 target) {
-        if (target == null) {
-            target = new Mat4();
-        }
-        target.set(mat.m[0], mat.m[1], mat.m[2], mat.m[3], mat.m[4], mat.m[5], mat.m[6], mat.m[7],
-                mat.m[8], mat.m[9], mat.m[10], mat.m[11], 0, 0, 0, 1);
-    }
-
-    private void updateHMDMatrixPose() {
-        if (hmd == null) {
-            return;
-        }
-
-        //nb, in jMonkeyVR there is a lengthy case for null compositor that seems irrelevant
-        //(pretty sure we can happily just use compositor, not sure we even have a choice)
-        compositor.WaitGetPoses.apply(hmdTrackedDevicePoseReference, VR.k_unMaxTrackedDeviceCount, null, 0);
-        //TODO VRInput._updateControllerStates();
-
-        // read pose data from native (copying from jMonkeyVR)
-//        for (int nDevice = 0; nDevice < VR.k_unMaxTrackedDeviceCount; ++nDevice) {
-//            TrackedDevicePose_t pose_t = hmdTrackedDevicePoses[nDevice];
-//            pose_t.readField("bPoseIsValid");
-//            if (pose_t.bPoseIsValid != 0) {
-//                pose_t.readField("mDeviceToAbsoluteTracking");
-//                // OpenVRUtil.convertSteamVRMatrix3ToMatrix4f(pose_t.mDeviceToAbsoluteTracking, poseMatrices[nDevice]);
-//                convertSteamVRMatrix3ToMat4(pose_t.mDeviceToAbsoluteTracking, poseMatrices[nDevice]);
-//            }
-//        }
-//
-//        if (hmdTrackedDevicePoses[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid != 0) {
-//            hmdPose.set(poseMatrices[VR.k_unTrackedDeviceIndex_Hmd]);
-//            //Mat4 could really use a toString() override...
-//            //hmdPose.print(true);
-//        } else {
-//            hmdPose.identity();
-//        }
-    }
-
     private void renderStereoTargets(GL4 gl4) {
 
-        clearColor.put(0, 0.95f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);  // nice background color, but not black
+        clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);  // nice background color, but not black
 
         for (int eye = 0; eye < VR.EVREye.Max; eye++) {
 
@@ -454,6 +417,36 @@ public class Application implements GLEventListener, KeyListener {
         }
         gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+
+    private void updateHMDMatrixPose() {
+        if (hmd == null) {
+            return;
+        }
+
+        //nb, in jMonkeyVR there is a lengthy case for null compositor that seems irrelevant
+        //(pretty sure we can happily just use compositor, not sure we even have a choice)
+        compositor.WaitGetPoses.apply(trackedDevicePosesReference, VR.k_unMaxTrackedDeviceCount, null, 0);
+        //TODO VRInput._updateControllerStates();
+
+        // read pose data from native (copying from jMonkeyVR)
+//        for (int nDevice = 0; nDevice < VR.k_unMaxTrackedDeviceCount; ++nDevice) {
+//            TrackedDevicePose_t pose_t = hmdTrackedDevicePoses[nDevice];
+//            pose_t.readField("bPoseIsValid");
+//            if (pose_t.bPoseIsValid != 0) {
+//                pose_t.readField("mDeviceToAbsoluteTracking");
+//                // OpenVRUtil.convertSteamVRMatrix3ToMatrix4f(pose_t.mDeviceToAbsoluteTracking, poseMatrices[nDevice]);
+//                convertSteamVRMatrix3ToMat4(pose_t.mDeviceToAbsoluteTracking, poseMatrices[nDevice]);
+//            }
+//        }
+//
+//        if (hmdTrackedDevicePoses[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid != 0) {
+//            hmdPose.set(poseMatrices[VR.k_unTrackedDeviceIndex_Hmd]);
+//            //Mat4 could really use a toString() override...
+//            //hmdPose.print(true);
+//        } else {
+//            hmdPose.identity();
+//        }
     }
 
     @Override

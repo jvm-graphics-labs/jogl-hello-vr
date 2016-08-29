@@ -58,7 +58,7 @@ public class Distortion {
         float w = 1.0f / (lensGridSegmentCountH - 1);
         float h = 1.0f / (lensGridSegmentCountV - 1);
 
-        float u = 0, v = 0;
+        float u, v;
 
         List<VertexDataLens> verts = new ArrayList<>();
 
@@ -216,7 +216,7 @@ public class Distortion {
             gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             // left lens (first half of index array ), right lens (second half of index array )
             gl4.glDrawElements(GL_TRIANGLES, indexSize / 2, GL_UNSIGNED_SHORT,
-                    eye == VR.EVREye.Eye_Left ? 0 : indexSize * Short.BYTES);
+                    eye == VR.EVREye.Eye_Left ? 0 : indexSize);
         }
         gl4.glBindVertexArray(0);
         gl4.glUseProgram(0);
