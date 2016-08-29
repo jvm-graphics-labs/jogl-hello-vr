@@ -6,14 +6,24 @@
 package helloVr;
 
 import static com.jogamp.opengl.GL.GL_ARRAY_BUFFER;
+import static com.jogamp.opengl.GL.GL_CLAMP_TO_EDGE;
+import static com.jogamp.opengl.GL.GL_DEPTH_TEST;
 import static com.jogamp.opengl.GL.GL_ELEMENT_ARRAY_BUFFER;
 import static com.jogamp.opengl.GL.GL_FLOAT;
+import static com.jogamp.opengl.GL.GL_LINEAR;
+import static com.jogamp.opengl.GL.GL_LINEAR_MIPMAP_LINEAR;
 import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
+import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
+import static com.jogamp.opengl.GL.GL_TEXTURE_MAG_FILTER;
+import static com.jogamp.opengl.GL.GL_TEXTURE_MIN_FILTER;
+import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_S;
+import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
+import static com.jogamp.opengl.GL.GL_TRIANGLES;
+import static com.jogamp.opengl.GL.GL_UNSIGNED_SHORT;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.util.GLBuffers;
 import glm.vec._2.Vec2;
 import glutil.BufferUtils;
-import static helloVr.Application.vertexArrayName;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -37,7 +47,7 @@ public class Distortion {
     }
 
     private int indexSize;
-    private IntBuffer vertexArrayName = GLBuffers.newDirectIntBuffer(1), 
+    private IntBuffer vertexArrayName = GLBuffers.newDirectIntBuffer(1),
             bufferName = GLBuffers.newDirectIntBuffer(Buffer.MAX);
 
     public void setup(GL4 gl4, IVRSystem hmd) {
@@ -187,5 +197,28 @@ public class Distortion {
 
         BufferUtils.destroyDirectBuffer(vertexBuffer);
         BufferUtils.destroyDirectBuffer(indexBuffer);
+    }
+
+    public void render(GL4 gl4, Application app) {
+
+        gl4.glDisable(GL_DEPTH_TEST);
+        gl4.glViewport(0, 0, app.windowSize.x, app.windowSize.y);
+
+        gl4.glBindVertexArray(vertexArrayName.get(0));
+        gl4.glUseProgram(app.program[Application.Program.LENS].name);
+
+        for (int eye = 0; eye < VR.EVREye.Max; eye++) {
+
+            gl4.glBindTexture(GL_TEXTURE_2D, app.eyeDesc[eye].textureName.get(FramebufferDesc.Target.RESOLVE));
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            // left lens (first half of index array ), right lens (second half of index array )
+            gl4.glDrawElements(GL_TRIANGLES, indexSize / 2, GL_UNSIGNED_SHORT,
+                    eye == VR.EVREye.Eye_Left ? 0 : indexSize * Short.BYTES);
+        }
+        gl4.glBindVertexArray(0);
+        gl4.glUseProgram(0);
     }
 }

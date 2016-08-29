@@ -37,9 +37,9 @@ public class VertexDataLens {
 
     public void toDbb(ByteBuffer bb, int index) {
 
-        position.toDbb(bb, index + 0 * Vec2.SIZE);
-        texCoordRed.toDbb(bb, index + 1 * Vec2.SIZE);
-        texCoordGreen.toDbb(bb, index + 2 * Vec2.SIZE);
-        texCoordBlue.toDbb(bb, index + 3 * Vec2.SIZE);
+        position.toDbb(bb, index + OFFSET_POSITION);
+        texCoordRed.toDbb(bb, index + OFFSET_TEX_COORD_RED);
+        texCoordGreen.toDbb(bb, index + OFFSET_TEX_COORD_GREEN);
+        texCoordBlue.toDbb(bb, index + OFFSET_TEX_COORD_BLUE);
     }
 }
