@@ -57,8 +57,6 @@ public class Application implements GLEventListener, KeyListener {
 
     private static GLWindow glWindow;
     private static Animator animator;
-    private boolean debugOpenGL = false;
-    public Vec2i windowSize = new Vec2i(1280, 720);
 
     public static void main(String[] args) {
 
@@ -75,18 +73,19 @@ public class Application implements GLEventListener, KeyListener {
         public static final int MAX = 2;
     }
 
+    private boolean debugOpenGL = false;
+    public Vec2i windowSize = new Vec2i(1280, 720);
+
     public IVRSystem hmd;
     private TrackedDevicePose_t.ByReference trackedDevicePosesReference = new TrackedDevicePose_t.ByReference();
-    private TrackedDevicePose_t[] trackedDevicePoses
+    private TrackedDevicePose_t[] trackedDevicePose
             = (TrackedDevicePose_t[]) trackedDevicePosesReference.toArray(VR.k_unMaxTrackedDeviceCount);
-    private static Mat4[] poseMatrices;
 
     private Vec2i renderSize = new Vec2i();
-    private boolean vBlank = false;
-    private boolean glFinishHack = true;
-    private int vertexCount = 0, indexSize;
+    private boolean vBlank = false, glFinishHack = true;
+
     private float nearClip = 0.1f, farClip = 30.0f;
-    private IntBuffer buffername = GLBuffers.newDirectIntBuffer(Buffer.MAX);
+
     public FramebufferDesc[] eyeDesc = new FramebufferDesc[VR.EVREye.Max];
     private Scene scene;
 
@@ -94,8 +93,11 @@ public class Application implements GLEventListener, KeyListener {
             matBuffer = GLBuffers.newDirectFloatBuffer(16);
     public boolean showCubes = true;
 
-    public Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max];
+    public Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max],
+            mat4DevicePose = new Mat4[VR.k_unMaxTrackedDeviceCount];
     public Mat4 hmdPose = new Mat4();
+
+    private char[] devClassChar = new char[VR.k_unMaxTrackedDeviceCount];
 
     private IntBuffer errorBuffer = GLBuffers.newDirectIntBuffer(1);
     private IVRCompositor_FnTable compositor;
@@ -206,6 +208,7 @@ public class Application implements GLEventListener, KeyListener {
         setupRenderModels(gl4);
 
         IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye] = new FramebufferDesc(gl4, renderSize));
+        IntStreamEx.range(mat4DevicePose.length).forEach(mat -> mat4DevicePose[mat] = new Mat4());
 
         return true;
     }
@@ -392,6 +395,52 @@ public class Application implements GLEventListener, KeyListener {
         compositor.WaitGetPoses.apply(trackedDevicePosesReference, VR.k_unMaxTrackedDeviceCount, null, 0);
         //TODO VRInput._updateControllerStates();
 
+        int validPoseCount = 0;
+        String poseClasses = "";
+
+        for (int device = 0; device < VR.k_unMaxTrackedDeviceCount; device++) {
+
+            if (trackedDevicePose[device].bPoseIsValid == 1) {
+
+                validPoseCount++;
+                convertStreamVRMatrixToMat4(trackedDevicePose[device].mDeviceToAbsoluteTracking,
+                        mat4DevicePose[device]);
+
+                if (devClassChar[device] == 0) {
+
+                    switch (hmd.GetTrackedDeviceClass.apply(device)) {
+
+                        case VR.ETrackedDeviceClass.TrackedDeviceClass_Controller:
+                            devClassChar[device] = 'C';
+                            break;
+
+                        case VR.ETrackedDeviceClass.TrackedDeviceClass_HMD:
+                            devClassChar[device] = 'H';
+                            break;
+
+                        case VR.ETrackedDeviceClass.TrackedDeviceClass_Invalid:
+                            devClassChar[device] = 'I';
+                            break;
+
+                        case VR.ETrackedDeviceClass.TrackedDeviceClass_Other:
+                            devClassChar[device] = 'O';
+                            break;
+
+                        case VR.ETrackedDeviceClass.TrackedDeviceClass_TrackingReference:
+                            devClassChar[device] = 'T';
+                            break;
+
+                        default:
+                            devClassChar[device] = '?';
+                            break;
+                    }
+                    poseClasses += devClassChar[device];
+                }
+            }
+            if(trackedDevicePose[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid == 1) {
+                mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
+            }
+        }
         // read pose data from native (copying from jMonkeyVR)
 //        for (int nDevice = 0; nDevice < VR.k_unMaxTrackedDeviceCount; ++nDevice) {
 //            TrackedDevicePose_t pose_t = hmdTrackedDevicePoses[nDevice];
@@ -410,6 +459,20 @@ public class Application implements GLEventListener, KeyListener {
 //        } else {
 //            hmdPose.identity();
 //        }
+    }
+
+    /**
+     * Purpose: Converts a SteamVR matrix to our local matrix class.
+     *
+     * @param matPose
+     * @return
+     */
+    private void convertStreamVRMatrixToMat4(HmdMatrix34_t matPose, Mat4 mat4) {
+        mat4.set(
+                matPose.m[0], matPose.m[4], matPose.m[8], 0.0f,
+                matPose.m[1], matPose.m[5], matPose.m[9], 0.0f,
+                matPose.m[2], matPose.m[6], matPose.m[10], 0.0f,
+                matPose.m[3], matPose.m[7], matPose.m[11], 1.0f);
     }
 
     @Override
