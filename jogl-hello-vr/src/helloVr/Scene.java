@@ -12,6 +12,8 @@ import static com.jogamp.opengl.GL.GL_FLOAT;
 import static com.jogamp.opengl.GL.GL_LINEAR;
 import static com.jogamp.opengl.GL.GL_LINEAR_MIPMAP_LINEAR;
 import static com.jogamp.opengl.GL.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
+import static com.jogamp.opengl.GL.GL_RGB;
+import static com.jogamp.opengl.GL.GL_RGB8;
 import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
 import static com.jogamp.opengl.GL.GL_TEXTURE0;
 import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
@@ -21,6 +23,7 @@ import static com.jogamp.opengl.GL.GL_TEXTURE_MIN_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_S;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import static com.jogamp.opengl.GL.GL_TRIANGLES;
+import static com.jogamp.opengl.GL.GL_UNSIGNED_BYTE;
 import static com.jogamp.opengl.GL2ES3.GL_COLOR;
 import static com.jogamp.opengl.GL2ES3.GL_DEPTH;
 import com.jogamp.opengl.GL4;
@@ -33,6 +36,8 @@ import glm.vec._3.Vec3;
 import glm.vec._3.i.Vec3i;
 import glm.vec._4.Vec4;
 import glutil.BufferUtils;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -41,6 +46,7 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 import one.util.streamex.IntStreamEx;
 
 /**
@@ -74,17 +80,16 @@ public class Scene {
     private boolean initTextureMaps(GL4 gl4) {
 
         try {
-            TextureData textureData = TextureIO.newTextureData(gl4.getGLProfile(), new File(TEXTURE_PATH), false,
-                    TextureIO.PNG);
+            BufferedImage bufferedImage = ImageIO.read(new File(TEXTURE_PATH));
+            byte[] dataBytes = ((DataBufferByte) bufferedImage.getRaster().getDataBuffer()).getData();
+            ByteBuffer bufferedImageBuffer = GLBuffers.newDirectByteBuffer(dataBytes);
 
             gl4.glGenTextures(1, textureName);
             gl4.glActiveTexture(GL_TEXTURE0);
             gl4.glBindTexture(GL_TEXTURE_2D, textureName.get(0));
 
-            // internal format GL_RGB8, format GL_RGB, type GL_UNSIGNED_BYTE
-            gl4.glTexImage2D(GL_TEXTURE_2D, 0, textureData.getInternalFormat(), textureData.getWidth(),
-                    textureData.getHeight(), textureData.getBorder(), textureData.getPixelFormat(),
-                    textureData.getPixelType(), textureData.getBuffer());
+            gl4.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, bufferedImage.getWidth(), bufferedImage.getHeight(), 0,
+                    GL_RGB, GL_UNSIGNED_BYTE, bufferedImageBuffer);
 
             gl4.glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -93,13 +98,14 @@ public class Scene {
             gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            FloatBuffer largest = GLBuffers.newDirectFloatBuffer(1);
-            gl4.glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, largest);
-            gl4.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest.get(0));
+            FloatBuffer maxAnis = GLBuffers.newDirectFloatBuffer(1);
+            gl4.glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, maxAnis);
+            gl4.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAnis.get(0));
 
             gl4.glBindTexture(GL_TEXTURE_2D, 0);
 
-            BufferUtils.destroyDirectBuffer(largest);
+            BufferUtils.destroyDirectBuffer(maxAnis);
+            BufferUtils.destroyDirectBuffer(bufferedImageBuffer);
 
         } catch (IOException ex) {
             Logger.getLogger(Application.class.getName()).log(Level.SEVERE, null, ex);
