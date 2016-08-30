@@ -12,8 +12,8 @@ import static com.jogamp.opengl.GL.GL_FLOAT;
 import static com.jogamp.opengl.GL.GL_LINEAR;
 import static com.jogamp.opengl.GL.GL_LINEAR_MIPMAP_LINEAR;
 import static com.jogamp.opengl.GL.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
-import static com.jogamp.opengl.GL.GL_RGBA;
 import static com.jogamp.opengl.GL.GL_STATIC_DRAW;
+import static com.jogamp.opengl.GL.GL_TEXTURE0;
 import static com.jogamp.opengl.GL.GL_TEXTURE_2D;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MAG_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_MAX_ANISOTROPY_EXT;
@@ -21,16 +21,18 @@ import static com.jogamp.opengl.GL.GL_TEXTURE_MIN_FILTER;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_S;
 import static com.jogamp.opengl.GL.GL_TEXTURE_WRAP_T;
 import static com.jogamp.opengl.GL.GL_TRIANGLES;
-import static com.jogamp.opengl.GL.GL_UNSIGNED_BYTE;
 import static com.jogamp.opengl.GL2ES3.GL_COLOR;
 import static com.jogamp.opengl.GL2ES3.GL_DEPTH;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.util.GLBuffers;
+import com.jogamp.opengl.util.texture.TextureData;
+import com.jogamp.opengl.util.texture.TextureIO;
 import glm.mat._4.Mat4;
 import glm.vec._3.Vec3;
 import glm.vec._3.i.Vec3i;
 import glm.vec._4.Vec4;
 import glutil.BufferUtils;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -38,7 +40,6 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jgli.Texture2d;
 import one.util.streamex.IntStreamEx;
 
 /**
@@ -47,11 +48,11 @@ import one.util.streamex.IntStreamEx;
  */
 public class Scene {
 
-    private final String TEXTURE_PATH = "/helloVr/asset/cube_texture.png";
+    private final String TEXTURE_PATH = "src/helloVr/asset/cube_texture.png", SHADERS_SRC = "scene";
 
-    private float scaleSpacing = 4.0f, scale = 0.3f;
-    private int sceneVolumeInit = 20, vertexCount;
-    private Vec3i sceneVolume = new Vec3i(sceneVolumeInit);
+    private ProgramScene program;
+
+    private int vertexCount;
 
     private IntBuffer vertexArrayName = GLBuffers.newDirectIntBuffer(1),
             vertexBufferName = GLBuffers.newDirectIntBuffer(1), textureName = GLBuffers.newDirectIntBuffer(1);
@@ -60,7 +61,56 @@ public class Scene {
 
     public Scene(GL4 gl4) {
 
-        setupTextureMaps(gl4);
+        program = new ProgramScene(gl4, Application.SHADERS_ROOT, SHADERS_SRC);
+
+        initTextureMaps(gl4);
+
+        initBuffer(gl4);
+
+        initVertexArray(gl4);
+    }
+
+    private boolean initTextureMaps(GL4 gl4) {
+
+        try {
+            TextureData textureData = TextureIO.newTextureData(gl4.getGLProfile(), new File(TEXTURE_PATH), false,
+                    TextureIO.PNG);
+
+            gl4.glGenTextures(1, textureName);
+            gl4.glActiveTexture(GL_TEXTURE0);
+            gl4.glBindTexture(GL_TEXTURE_2D, textureName.get(0));
+
+            // internal format GL_RGB8, format GL_RGB, type GL_UNSIGNED_BYTE
+            gl4.glTexImage2D(GL_TEXTURE_2D, 0, textureData.getInternalFormat(), textureData.getWidth(),
+                    textureData.getHeight(), textureData.getBorder(), textureData.getPixelFormat(),
+                    textureData.getPixelType(), textureData.getBuffer());
+
+            gl4.glGenerateMipmap(GL_TEXTURE_2D);
+
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            FloatBuffer largest = GLBuffers.newDirectFloatBuffer(1);
+            gl4.glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, largest);
+            gl4.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest.get(0));
+
+            gl4.glBindTexture(GL_TEXTURE_2D, 0);
+
+            BufferUtils.destroyDirectBuffer(largest);
+
+        } catch (IOException ex) {
+            Logger.getLogger(Application.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return true;
+    }
+
+    private void initBuffer(GL4 gl4) {
+
+        float scaleSpacing = 4.0f, scale = 0.3f;
+        int sceneVolumeInit = 20;
+        Vec3i sceneVolume = new Vec3i(sceneVolumeInit);
 
         ArrayList<Float> vertexDataArray = new ArrayList<>();
 
@@ -91,13 +141,20 @@ public class Scene {
         IntStreamEx.range(vertexDataArray.size()).forEach(i
                 -> vertexBuffer.putFloat(i * Float.BYTES, vertexDataArray.get(i)));
 
-        gl4.glGenVertexArrays(1, vertexArrayName);
-        gl4.glBindVertexArray(vertexArrayName.get(0));
-
         gl4.glGenBuffers(1, vertexBufferName);
         gl4.glBindBuffer(GL_ARRAY_BUFFER, vertexBufferName.get(0));
         gl4.glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity(), vertexBuffer, GL_STATIC_DRAW);
 
+        BufferUtils.destroyDirectBuffer(vertexBuffer);
+    }
+
+    private void initVertexArray(GL4 gl4) {
+
+        gl4.glGenVertexArrays(1, vertexArrayName);
+        gl4.glBindVertexArray(vertexArrayName.get(0));
+
+        gl4.glBindBuffer(GL_ARRAY_BUFFER, vertexBufferName.get(0));
+        
         int stride = VertexDataScene.SIZE, offset = 0;
 
         gl4.glEnableVertexAttribArray(Semantic.Attr.POSITION);
@@ -107,55 +164,9 @@ public class Scene {
         gl4.glEnableVertexAttribArray(Semantic.Attr.TERX_COORD);
         gl4.glVertexAttribPointer(Semantic.Attr.TERX_COORD, 2, GL_FLOAT, false, stride, offset);
 
+        gl4.glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
         gl4.glBindVertexArray(0);
-
-        BufferUtils.destroyDirectBuffer(vertexBuffer);
-    }
-
-    private boolean setupTextureMaps(GL4 gl4) {
-
-        try {
-            jgli.Texture2d texture = new Texture2d(jgli.Load.load(TEXTURE_PATH));
-//            if (texture.empty()) {
-//                return false;
-//            }
-
-//            gl4.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            gl4.glGenTextures(1, textureName);
-//            gl4.glActiveTexture(GL_TEXTURE0);
-            gl4.glBindTexture(GL_TEXTURE_2D, textureName.get(0));
-
-//            jgli.Gl.Format format = jgli.Gl.translate(texture.format());
-            //TODO check if loop needed
-            for (int level = 0; level < texture.levels(); ++level) {
-                // TODO fix
-                gl4.glTexImage2D(GL_TEXTURE_2D, level,
-                        GL_RGBA,
-                        texture.dimensions(level)[0], texture.dimensions(level)[1],
-                        0,
-                        GL_RGBA, GL_UNSIGNED_BYTE,
-                        texture.data(level));
-            }
-
-            gl4.glGenerateMipmap(GL_TEXTURE_2D);
-
-            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            FloatBuffer largest = GLBuffers.newDirectFloatBuffer(1);
-            gl4.glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, largest);
-            gl4.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest.get(0));
-
-            gl4.glBindTexture(GL_TEXTURE_2D, 0);
-
-            BufferUtils.destroyDirectBuffer(largest);
-
-        } catch (IOException ex) {
-            Logger.getLogger(Application.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return true;
     }
 
     private void addCubeToScene(Mat4 mat, ArrayList<Float> vertexDataArray) {
@@ -221,7 +232,7 @@ public class Scene {
         vertexData.add(fl4);
     }
 
-    void render(GL4 gl4, Application app, int eye) {
+    public void render(GL4 gl4, Application app, int eye) {
 
         gl4.glClearBufferfv(GL_COLOR, 0, app.clearColor);
         gl4.glClearBufferfv(GL_DEPTH, 0, app.clearDepth);
@@ -229,10 +240,13 @@ public class Scene {
 
         if (app.showCubes) {
 
-            gl4.glUseProgram(app.program[Application.Program.SCENE].name);
-            gl4.glUniformMatrix4fv(app.matrixLocation[Application.Program.SCENE], 1, false,
-                    getCurrentViewProjectionMatrix(app, eye));
+            gl4.glUseProgram(program.name);
+            
+            gl4.glUniformMatrix4fv(program.matrixUL(), 1, false, getCurrentViewProjectionMatrix(app, eye));
+            
             gl4.glBindVertexArray(vertexArrayName.get(0));
+            
+            gl4.glActiveTexture(GL_TEXTURE0 + Semantic.Sampler.MY_TEXTURE);
             gl4.glBindTexture(GL_TEXTURE_2D, textureName.get(0));
 
             gl4.glDrawArrays(GL_TRIANGLES, 0, vertexCount);
@@ -243,9 +257,9 @@ public class Scene {
         boolean isInputCapturedByAnotherProcess = app.hmd.IsInputFocusCapturedByAnotherProcess.apply() == 1;
 
         if (!isInputCapturedByAnotherProcess) {
-            
+
         }
-        
+
         gl4.glUseProgram(0);
     }
 

@@ -39,18 +39,32 @@ import one.util.streamex.IntStreamEx;
  */
 public class Distortion {
 
+    private final String SHADERS_SRC = "distortion";
+
     private interface Buffer {
 
         public static final int VERTEX = 0;
-        public static final int INDEX = 1;
+        public static final int ELEMENT = 1;
         public static final int MAX = 2;
     }
 
     private int indexSize;
+
     private IntBuffer vertexArrayName = GLBuffers.newDirectIntBuffer(1),
             bufferName = GLBuffers.newDirectIntBuffer(Buffer.MAX);
 
-    public void setup(GL4 gl4, IVRSystem hmd) {
+    private ProgramDistortion program;
+
+    public Distortion(GL4 gl4, IVRSystem hmd) {
+
+        initBuffers(gl4, hmd);
+
+        initVertexArray(gl4);
+
+        program = new ProgramDistortion(gl4, Application.SHADERS_ROOT, SHADERS_SRC);
+    }
+
+    private void initBuffers(GL4 gl4, IVRSystem hmd) {
 
         short lensGridSegmentCountH = 43;
         short lensGridSegmentCountV = 43;
@@ -155,19 +169,27 @@ public class Distortion {
         ByteBuffer vertexBuffer = GLBuffers.newDirectByteBuffer(verts.size() * VertexDataLens.SIZE);
         IntStreamEx.range(verts.size()).forEach(i -> verts.get(i).toDbb(vertexBuffer, i * VertexDataLens.SIZE));
 
-        ByteBuffer indexBuffer = GLBuffers.newDirectByteBuffer(indices.size() * Short.BYTES);
-        IntStreamEx.range(indices.size()).forEach(i -> indexBuffer.putShort(i * Short.BYTES, indices.get(i)));
-
-        gl4.glGenVertexArrays(1, vertexArrayName);
-        gl4.glBindVertexArray(vertexArrayName.get(0));
+        ByteBuffer elementBuffer = GLBuffers.newDirectByteBuffer(indices.size() * Short.BYTES);
+        IntStreamEx.range(indices.size()).forEach(i -> elementBuffer.putShort(i * Short.BYTES, indices.get(i)));
 
         gl4.glGenBuffers(Buffer.MAX, bufferName);
 
         gl4.glBindBuffer(GL_ARRAY_BUFFER, bufferName.get(Buffer.VERTEX));
         gl4.glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity(), vertexBuffer, GL_STATIC_DRAW);
 
-        gl4.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferName.get(Buffer.INDEX));
-        gl4.glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.capacity(), indexBuffer, GL_STATIC_DRAW);
+        gl4.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferName.get(Buffer.ELEMENT));
+        gl4.glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementBuffer.capacity(), elementBuffer, GL_STATIC_DRAW);
+
+        BufferUtils.destroyDirectBuffer(vertexBuffer);
+        BufferUtils.destroyDirectBuffer(elementBuffer);
+    }
+
+    private void initVertexArray(GL4 gl4) {
+
+        gl4.glGenVertexArrays(1, vertexArrayName);
+        gl4.glBindVertexArray(vertexArrayName.get(0));
+
+        gl4.glBindBuffer(GL_ARRAY_BUFFER, bufferName.get(Buffer.VERTEX));
 
         gl4.glEnableVertexAttribArray(Semantic.Attr.POSITION);
         gl4.glVertexAttribPointer(Semantic.Attr.POSITION, 2, GL_FLOAT, false, VertexDataLens.SIZE,
@@ -185,18 +207,11 @@ public class Distortion {
         gl4.glVertexAttribPointer(Semantic.Attr.UV_BLUE, 2, GL_FLOAT, false, VertexDataLens.SIZE,
                 VertexDataLens.OFFSET_TEX_COORD_BLUE);
 
-        gl4.glBindVertexArray(0);
-
-        gl4.glDisableVertexAttribArray(Semantic.Attr.POSITION);
-        gl4.glDisableVertexAttribArray(Semantic.Attr.UV_RED);
-        gl4.glDisableVertexAttribArray(Semantic.Attr.UV_GREEN);
-        gl4.glDisableVertexAttribArray(Semantic.Attr.UV_BLUE);
-
         gl4.glBindBuffer(GL_ARRAY_BUFFER, 0);
-        gl4.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-        BufferUtils.destroyDirectBuffer(vertexBuffer);
-        BufferUtils.destroyDirectBuffer(indexBuffer);
+        gl4.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferName.get(Buffer.ELEMENT));
+
+        gl4.glBindVertexArray(0);
     }
 
     public void render(GL4 gl4, Application app) {
@@ -205,7 +220,7 @@ public class Distortion {
         gl4.glViewport(0, 0, app.windowSize.x, app.windowSize.y);
 
         gl4.glBindVertexArray(vertexArrayName.get(0));
-        gl4.glUseProgram(app.program[Application.Program.LENS].name);
+        gl4.glUseProgram(program.name);
 
         for (int eye = 0; eye < VR.EVREye.Max; eye++) {
 
@@ -216,7 +231,7 @@ public class Distortion {
             gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             // left lens (first half of index array ), right lens (second half of index array )
             gl4.glDrawElements(GL_TRIANGLES, indexSize / 2, GL_UNSIGNED_SHORT,
-                    eye == VR.EVREye.Eye_Left ? 0 : indexSize);
+                    eye == VR.EVREye.Eye_Left ? 0 : indexSize); // indexSize / 2 * Short.Bytes = indexSize
         }
         gl4.glBindVertexArray(0);
         gl4.glUseProgram(0);

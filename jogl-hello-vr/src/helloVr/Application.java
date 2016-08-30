@@ -39,7 +39,6 @@ import glm.vec._2.i.Vec2i;
 import glutil.BufferUtils;
 import glutil.GlDebugOutput;
 import one.util.streamex.IntStreamEx;
-//import jopenvr.DistortionCoordinates_t;
 import vr.HmdMatrix34_t;
 import vr.HmdMatrix44_t;
 import vr.IVRCompositor_FnTable;
@@ -47,13 +46,14 @@ import vr.IVRSystem;
 import vr.Texture_t;
 import vr.TrackedDevicePose_t;
 import vr.VR;
-import one.util.streamex.StreamEx;
 
 /**
  *
  * @author GBarbieri
  */
 public class Application implements GLEventListener, KeyListener {
+
+    public static final String SHADERS_ROOT = "/helloVr/shaders";
 
     private static GLWindow glWindow;
     private static Animator animator;
@@ -66,18 +66,6 @@ public class Application implements GLEventListener, KeyListener {
 
         glWindow.addGLEventListener(app);
         glWindow.addKeyListener(app);
-    }
-
-    private final String SHADERS_ROOT = "/helloVr/shaders";
-    private final String[] SHADERS_SRC = {"scene", "controller-transform", "render-model", "distortion"};
-
-    public interface Program {
-
-        public static final int SCENE = 0;
-        public static final int CONTROLLER_TRANSFORM = 1;
-        public static final int RENDER_MODEL = 2;
-        public static final int LENS = 3;
-        public static final int MAX = 4;
     }
 
     private interface Buffer {
@@ -105,8 +93,6 @@ public class Application implements GLEventListener, KeyListener {
     public FloatBuffer clearColor = GLBuffers.newDirectFloatBuffer(4), clearDepth = GLBuffers.newDirectFloatBuffer(1),
             matBuffer = GLBuffers.newDirectFloatBuffer(16);
     public boolean showCubes = true;
-    public glsl.Program[] program = new glsl.Program[Program.MAX];
-    public int[] matrixLocation = new int[Program.LENS];
 
     public Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max];
     public Mat4 hmdPose = new Mat4();
@@ -116,7 +102,7 @@ public class Application implements GLEventListener, KeyListener {
 
     private Texture_t[] eyeTexture = new Texture_t[VR.EVREye.Max];
 
-    private Distortion distortion = new Distortion();
+    private Distortion distortion;
 
     public Application() {
 
@@ -212,10 +198,6 @@ public class Application implements GLEventListener, KeyListener {
             gl4.glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         }
 
-        if (!createAllShaders(gl4)) {
-            return false;
-        }
-
         setupScene(gl4); // setupTextureMaps() inside
         setupCameras();
         setupStereoRenderTargets(gl4);
@@ -226,26 +208,6 @@ public class Application implements GLEventListener, KeyListener {
         IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye] = new FramebufferDesc(gl4, renderSize));
 
         return true;
-    }
-
-    /**
-     * Purpose: Creates all the shaders used by HelloVR JOGL.
-     *
-     * @param gl4
-     * @return
-     */
-    private boolean createAllShaders(GL4 gl4) {
-        for (int p = 0; p < Program.MAX; p++) {
-            program[p] = new glsl.Program(gl4, SHADERS_ROOT, SHADERS_SRC[p]);
-            if (p <= Program.RENDER_MODEL) {
-                matrixLocation[p] = gl4.glGetUniformLocation(program[p].name, "matrix");
-                if (matrixLocation[p] == -1) {
-                    System.err.println("Unable to find matrix uniform in program " + p);
-                    return false;
-                }
-            }
-        };
-        return StreamEx.of(program).allMatch(p -> p.name != 0);
     }
 
     private void setupScene(GL4 gl4) {
@@ -304,7 +266,11 @@ public class Application implements GLEventListener, KeyListener {
         if (hmd == null) {
             return;
         }
-        distortion.setup(gl4, hmd);
+        distortion = new Distortion(gl4, hmd);
+    }
+
+    private boolean setupRenderModels(GL4 gl4) {
+        return true;
     }
 
     private boolean initCompositor() {
@@ -318,10 +284,6 @@ public class Application implements GLEventListener, KeyListener {
             System.err.println("Compositor initialization failed. See log file for details");
             return false;
         }
-        return true;
-    }
-
-    private boolean setupRenderModels(GL4 gl4) {
         return true;
     }
 
