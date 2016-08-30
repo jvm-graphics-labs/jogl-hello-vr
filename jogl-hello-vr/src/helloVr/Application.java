@@ -389,11 +389,7 @@ public class Application implements GLEventListener, KeyListener {
         if (hmd == null) {
             return;
         }
-
-        //nb, in jMonkeyVR there is a lengthy case for null compositor that seems irrelevant
-        //(pretty sure we can happily just use compositor, not sure we even have a choice)
         compositor.WaitGetPoses.apply(trackedDevicePosesReference, VR.k_unMaxTrackedDeviceCount, null, 0);
-        //TODO VRInput._updateControllerStates();
 
         int validPoseCount = 0;
         String poseClasses = "";
@@ -441,24 +437,6 @@ public class Application implements GLEventListener, KeyListener {
                 mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
             }
         }
-        // read pose data from native (copying from jMonkeyVR)
-//        for (int nDevice = 0; nDevice < VR.k_unMaxTrackedDeviceCount; ++nDevice) {
-//            TrackedDevicePose_t pose_t = hmdTrackedDevicePoses[nDevice];
-//            pose_t.readField("bPoseIsValid");
-//            if (pose_t.bPoseIsValid != 0) {
-//                pose_t.readField("mDeviceToAbsoluteTracking");
-//                // OpenVRUtil.convertSteamVRMatrix3ToMatrix4f(pose_t.mDeviceToAbsoluteTracking, poseMatrices[nDevice]);
-//                convertSteamVRMatrix3ToMat4(pose_t.mDeviceToAbsoluteTracking, poseMatrices[nDevice]);
-//            }
-//        }
-//
-//        if (hmdTrackedDevicePoses[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid != 0) {
-//            hmdPose.set(poseMatrices[VR.k_unTrackedDeviceIndex_Hmd]);
-//            //Mat4 could really use a toString() override...
-//            //hmdPose.print(true);
-//        } else {
-//            hmdPose.identity();
-//        }
     }
 
     /**
