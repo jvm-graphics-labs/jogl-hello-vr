@@ -22,10 +22,11 @@ import one.util.streamex.IntStreamEx;
 import vr.VR;
 
 /**
+ * Draw all of the controllers as X/Y/Z lines.
  *
  * @author GBarbieri
  */
-public class LineControllers {
+public class AxisLineControllers {
 
     private final String SHADERS_SRC = "controller-transform";
 
@@ -37,7 +38,7 @@ public class LineControllers {
     private List<Float> vertDataArray = new ArrayList<>();
     private ByteBuffer vertexBuffer = GLBuffers.newDirectByteBuffer(SIZE);
 
-    public LineControllers(GL4 gl4) {
+    public AxisLineControllers(GL4 gl4) {
 
         program = new Program(gl4);
 

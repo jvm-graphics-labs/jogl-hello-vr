@@ -85,7 +85,7 @@ public class Application implements GLEventListener, KeyListener {
 
     private Scene scene;
     private Distortion distortion;
-    public LineControllers lineControllers;
+    public AxisLineControllers axisLineControllers;
 
     public FloatBuffer clearColor = GLBuffers.newDirectFloatBuffer(4), clearDepth = GLBuffers.newDirectFloatBuffer(1),
             matBuffer = GLBuffers.newDirectFloatBuffer(16);
@@ -202,9 +202,9 @@ public class Application implements GLEventListener, KeyListener {
         setupStereoRenderTargets(gl4);
         setupDistortion(gl4);
 
-        setupRenderModels(gl4);
+        new ModelsRender().setupRenderModels(gl4, this);
 
-        lineControllers = new LineControllers(gl4);
+        axisLineControllers = new AxisLineControllers(gl4);
 
         IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye] = new FramebufferDesc(gl4, renderSize));
         IntStreamEx.range(mat4DevicePose.length).forEach(mat -> mat4DevicePose[mat] = new Mat4());
@@ -271,10 +271,6 @@ public class Application implements GLEventListener, KeyListener {
         distortion = new Distortion(gl4, hmd);
     }
 
-    private boolean setupRenderModels(GL4 gl4) {
-        return true;
-    }
-
     private boolean initCompositor() {
 
         compositor = new IVRCompositor_FnTable(VR.VR_GetGenericInterface(VR.IVRCompositor_Version, errorBuffer));
@@ -297,7 +293,7 @@ public class Application implements GLEventListener, KeyListener {
         // for now as fast as possible
         if (hmd != null) {
 
-            lineControllers.update(gl4, this);  // = DrawControllers();
+            axisLineControllers.update(gl4, this);  // = DrawControllers();
             renderStereoTargets(gl4);
             distortion.render(gl4, this);
 
@@ -451,7 +447,7 @@ public class Application implements GLEventListener, KeyListener {
     }
 
     /**
-     * Purpose: Converts a SteamVR matrix to our local matrix class.
+     * Converts a SteamVR matrix to our local matrix class.
      *
      * @param matPose
      * @return

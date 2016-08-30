@@ -267,7 +267,7 @@ public class Scene {
         if (!isInputCapturedByAnotherProcess) {
 
             // draw the controller axis lines
-            app.lineControllers.render(gl4, app);
+            app.axisLineControllers.render(gl4, app);
         }
 
         gl4.glUseProgram(0);
