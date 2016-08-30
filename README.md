@@ -1,3 +1,3 @@
 # jogl-hello-vr
 
-![Sample](http://i.imgur.com/HYm6RJB.png)
+![Sample](http://imgur.com/wqqxti0.png)
