@@ -84,7 +84,7 @@ public class FramebufferDesc {
         gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    private static boolean checkFramebufferStatus(GL4 gl4) {
+    private boolean checkFramebufferStatus(GL4 gl4) {
 
         // check FBO status
         int status = gl4.glCheckFramebufferStatus(GL_FRAMEBUFFER);

@@ -358,6 +358,7 @@ public class Application implements GLEventListener, KeyListener {
     private void renderStereoTargets(GL4 gl4) {
 
         clearColor.put(0, 0.15f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);  // nice background color, but not black
+        clearDepth.put(0, 1.0f);
 
         for (int eye = 0; eye < VR.EVREye.Max; eye++) {
 

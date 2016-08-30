@@ -28,6 +28,7 @@ import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.opengl.util.texture.TextureData;
 import com.jogamp.opengl.util.texture.TextureIO;
 import glm.mat._4.Mat4;
+import glm.vec._2.Vec2;
 import glm.vec._3.Vec3;
 import glm.vec._3.i.Vec3i;
 import glm.vec._4.Vec4;
@@ -154,7 +155,7 @@ public class Scene {
         gl4.glBindVertexArray(vertexArrayName.get(0));
 
         gl4.glBindBuffer(GL_ARRAY_BUFFER, vertexBufferName.get(0));
-        
+
         int stride = VertexDataScene.SIZE, offset = 0;
 
         gl4.glEnableVertexAttribArray(Semantic.Attr.POSITION);
@@ -165,7 +166,7 @@ public class Scene {
         gl4.glVertexAttribPointer(Semantic.Attr.TERX_COORD, 2, GL_FLOAT, false, stride, offset);
 
         gl4.glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
+
         gl4.glBindVertexArray(0);
     }
 
@@ -241,11 +242,11 @@ public class Scene {
         if (app.showCubes) {
 
             gl4.glUseProgram(program.name);
-            
+
             gl4.glUniformMatrix4fv(program.matrixUL(), 1, false, getCurrentViewProjectionMatrix(app, eye));
-            
+
             gl4.glBindVertexArray(vertexArrayName.get(0));
-            
+
             gl4.glActiveTexture(GL_TEXTURE0 + Semantic.Sampler.MY_TEXTURE);
             gl4.glBindTexture(GL_TEXTURE_2D, textureName.get(0));
 
@@ -265,5 +266,26 @@ public class Scene {
 
     private FloatBuffer getCurrentViewProjectionMatrix(Application app, int eye) {
         return app.projection[eye].mul(app.eyePos[eye], mvp).mul(app.hmdPose).toDfb(app.matBuffer);
+    }
+
+    private class VertexDataScene {
+
+        public static final int SIZE = Vec3.SIZE + Vec2.SIZE;
+        public static final int OFFSET_POSITION = 0;
+        public static final int OFFSET_TEX_COORD = Vec3.SIZE;
+
+        public Vec3 position;
+        public Vec2 texCoord;
+
+        public VertexDataScene(Vec3 position, Vec2 texCoord) {
+            this.position = position;
+            this.texCoord = texCoord;
+        }
+
+        public void toDbb(ByteBuffer bb, int index) {
+
+            position.toDbb(bb, index + OFFSET_POSITION);
+            texCoord.toDbb(bb, index + OFFSET_TEX_COORD);
+        }
     }
 }

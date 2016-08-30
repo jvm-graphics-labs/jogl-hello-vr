@@ -236,4 +236,29 @@ public class Distortion {
         gl4.glBindVertexArray(0);
         gl4.glUseProgram(0);
     }
+
+    private class VertexDataLens {
+
+        public static final int SIZE = 4 * Vec2.SIZE;
+        public static final int OFFSET_POSITION = 0;
+        public static final int OFFSET_TEX_COORD_RED = 1 * Vec2.SIZE;
+        public static final int OFFSET_TEX_COORD_GREEN = 2 * Vec2.SIZE;
+        public static final int OFFSET_TEX_COORD_BLUE = 3 * Vec2.SIZE;
+
+        public Vec2 position;
+        public Vec2 texCoordRed;
+        public Vec2 texCoordGreen;
+        public Vec2 texCoordBlue;
+
+        public VertexDataLens() {
+        }
+
+        public void toDbb(ByteBuffer bb, int index) {
+
+            position.toDbb(bb, index + OFFSET_POSITION);
+            texCoordRed.toDbb(bb, index + OFFSET_TEX_COORD_RED);
+            texCoordGreen.toDbb(bb, index + OFFSET_TEX_COORD_GREEN);
+            texCoordBlue.toDbb(bb, index + OFFSET_TEX_COORD_BLUE);
+        }
+    }
 }
