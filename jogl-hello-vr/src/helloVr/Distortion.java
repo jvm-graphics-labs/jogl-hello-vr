@@ -53,7 +53,7 @@ public class Distortion {
     private IntBuffer vertexArrayName = GLBuffers.newDirectIntBuffer(1),
             bufferName = GLBuffers.newDirectIntBuffer(Buffer.MAX);
 
-    private ProgramDistortion program;
+    private Program program;
 
     public Distortion(GL4 gl4, IVRSystem hmd) {
 
@@ -61,7 +61,7 @@ public class Distortion {
 
         initVertexArray(gl4);
 
-        program = new ProgramDistortion(gl4, Application.SHADERS_ROOT, SHADERS_SRC);
+        program = new Program(gl4);
     }
 
     private void initBuffers(GL4 gl4, IVRSystem hmd) {
@@ -89,7 +89,7 @@ public class Distortion {
 
                 vert.position = new Vec2(xOffset + u, -1 + 2 * y * h);
 
-                DistortionCoordinates_t dc0 = hmd.ComputeDistortion.apply(VR.EVREye.Eye_Left, u, v);
+                DistortionCoordinates_t dc0 = hmd.ComputeDistortion.apply(VR.EVREye.EYE_Left, u, v);
 
                 vert.texCoordRed = new Vec2(dc0.rfRed[0], 1 - dc0.rfRed[1]);
                 vert.texCoordGreen = new Vec2(dc0.rfGreen[0], 1 - dc0.rfGreen[1]);
@@ -122,7 +122,7 @@ public class Distortion {
             }
         }
 
-        ArrayList<Short> indices = new ArrayList<>();
+        List<Short> indices = new ArrayList<>();
         short a, b, c, d;
         short offset = 0;
 
@@ -231,7 +231,7 @@ public class Distortion {
             gl4.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             // left lens (first half of index array ), right lens (second half of index array )
             gl4.glDrawElements(GL_TRIANGLES, indexSize / 2, GL_UNSIGNED_SHORT,
-                    eye == VR.EVREye.Eye_Left ? 0 : indexSize); // indexSize / 2 * Short.Bytes = indexSize
+                    eye == VR.EVREye.EYE_Left ? 0 : indexSize); // indexSize / 2 * Short.Bytes = indexSize
         }
         gl4.glBindVertexArray(0);
         gl4.glUseProgram(0);
@@ -259,6 +259,20 @@ public class Distortion {
             texCoordRed.toDbb(bb, index + OFFSET_TEX_COORD_RED);
             texCoordGreen.toDbb(bb, index + OFFSET_TEX_COORD_GREEN);
             texCoordBlue.toDbb(bb, index + OFFSET_TEX_COORD_BLUE);
+        }
+    }
+
+    private class Program extends glsl.Program {
+
+        public Program(GL4 gl4) {
+
+            super(gl4, Application.SHADERS_ROOT, SHADERS_SRC);
+
+            gl4.glUseProgram(name);
+            gl4.glUniform1i(
+                    gl4.glGetUniformLocation(name, "myTexture"),
+                    Semantic.Sampler.MY_TEXTURE);
+            gl4.glUseProgram(0);
         }
     }
 }

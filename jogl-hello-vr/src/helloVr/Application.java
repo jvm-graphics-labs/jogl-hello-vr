@@ -66,32 +66,29 @@ public class Application implements GLEventListener, KeyListener {
         glWindow.addKeyListener(app);
     }
 
-    private interface Buffer {
+    private boolean debugOpenGL = false, vBlank = false, glFinishHack = true;
+    public boolean showCubes = true;
 
-        public static final int VERTEX = 0;
-        public static final int INDEX = 1;
-        public static final int MAX = 2;
-    }
-
-    private boolean debugOpenGL = false;
-    public Vec2i windowSize = new Vec2i(1280, 720);
+    public Vec2i windowSize = new Vec2i(1280, 720), renderSize = new Vec2i();
 
     public IVRSystem hmd;
-    private TrackedDevicePose_t.ByReference trackedDevicePosesReference = new TrackedDevicePose_t.ByReference();
-    private TrackedDevicePose_t[] trackedDevicePose
-            = (TrackedDevicePose_t[]) trackedDevicePosesReference.toArray(VR.k_unMaxTrackedDeviceCount);
+    private IVRCompositor_FnTable compositor;
 
-    private Vec2i renderSize = new Vec2i();
-    private boolean vBlank = false, glFinishHack = true;
+    private TrackedDevicePose_t.ByReference trackedDevicePosesReference = new TrackedDevicePose_t.ByReference();
+    public TrackedDevicePose_t[] trackedDevicePose
+            = (TrackedDevicePose_t[]) trackedDevicePosesReference.toArray(VR.k_unMaxTrackedDeviceCount);
 
     private float nearClip = 0.1f, farClip = 30.0f;
 
     public FramebufferDesc[] eyeDesc = new FramebufferDesc[VR.EVREye.Max];
+    private Texture_t[] eyeTexture = new Texture_t[VR.EVREye.Max];
+
     private Scene scene;
+    private Distortion distortion;
+    public LineControllers lineControllers;
 
     public FloatBuffer clearColor = GLBuffers.newDirectFloatBuffer(4), clearDepth = GLBuffers.newDirectFloatBuffer(1),
             matBuffer = GLBuffers.newDirectFloatBuffer(16);
-    public boolean showCubes = true;
 
     public Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max],
             mat4DevicePose = new Mat4[VR.k_unMaxTrackedDeviceCount];
@@ -100,11 +97,11 @@ public class Application implements GLEventListener, KeyListener {
     private char[] devClassChar = new char[VR.k_unMaxTrackedDeviceCount];
 
     private IntBuffer errorBuffer = GLBuffers.newDirectIntBuffer(1);
-    private IVRCompositor_FnTable compositor;
 
-    private Texture_t[] eyeTexture = new Texture_t[VR.EVREye.Max];
+    public int trackedControllerCount = 0, trackedControllerCount_Last = -1, validPoseCount = 0,
+            validPoseCount_Last = -1;
 
-    private Distortion distortion;
+    private String poseClasses;
 
     public Application() {
 
@@ -207,6 +204,8 @@ public class Application implements GLEventListener, KeyListener {
 
         setupRenderModels(gl4);
 
+        lineControllers = new LineControllers(gl4);
+
         IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye] = new FramebufferDesc(gl4, renderSize));
         IntStreamEx.range(mat4DevicePose.length).forEach(mat -> mat4DevicePose[mat] = new Mat4());
 
@@ -297,7 +296,8 @@ public class Application implements GLEventListener, KeyListener {
 
         // for now as fast as possible
         if (hmd != null) {
-//		DrawControllers();
+
+            lineControllers.update(gl4, this);  // = DrawControllers();
             renderStereoTargets(gl4);
             distortion.render(gl4, this);
 
@@ -355,6 +355,17 @@ public class Application implements GLEventListener, KeyListener {
 //		dprintf( "PoseCount:%d(%s) Controllers:%d\n", m_iValidPoseCount, m_strPoseClasses.c_str(), m_iTrackedControllerCount );
 //	}
         updateHMDMatrixPose();
+
+        // Spew out the controller and pose count whenever they change.
+        if (trackedControllerCount != trackedControllerCount_Last || validPoseCount != validPoseCount_Last) {
+
+            validPoseCount_Last = validPoseCount;
+            trackedControllerCount_Last = trackedControllerCount;
+
+            System.out.println("PoseCount: " + validPoseCount + "(" + poseClasses + ")" + ", Controllers: "
+                    + trackedControllerCount);
+        }
+
         checkError(gl4, "display");
     }
 
@@ -391,8 +402,8 @@ public class Application implements GLEventListener, KeyListener {
         }
         compositor.WaitGetPoses.apply(trackedDevicePosesReference, VR.k_unMaxTrackedDeviceCount, null, 0);
 
-        int validPoseCount = 0;
-        String poseClasses = "";
+        validPoseCount = 0;
+        poseClasses = "";
 
         for (int device = 0; device < VR.k_unMaxTrackedDeviceCount; device++) {
 
@@ -433,7 +444,7 @@ public class Application implements GLEventListener, KeyListener {
                     poseClasses += devClassChar[device];
                 }
             }
-            if(trackedDevicePose[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid == 1) {
+            if (trackedDevicePose[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid == 1) {
                 mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
             }
         }
@@ -485,7 +496,7 @@ public class Application implements GLEventListener, KeyListener {
     public void keyReleased(KeyEvent e) {
     }
 
-    public static void checkError(GL4 gl4, String string) {
+    private void checkError(GL4 gl4, String string) {
         int error = gl4.glGetError();
         if (error != GL_NO_ERROR) {
             System.err.println("error " + error + ", " + string);

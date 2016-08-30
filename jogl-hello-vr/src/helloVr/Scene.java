@@ -28,8 +28,6 @@ import static com.jogamp.opengl.GL2ES3.GL_COLOR;
 import static com.jogamp.opengl.GL2ES3.GL_DEPTH;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.util.GLBuffers;
-import com.jogamp.opengl.util.texture.TextureData;
-import com.jogamp.opengl.util.texture.TextureIO;
 import glm.mat._4.Mat4;
 import glm.vec._2.Vec2;
 import glm.vec._3.Vec3;
@@ -44,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -57,7 +56,7 @@ public class Scene {
 
     private final String TEXTURE_PATH = "src/helloVr/asset/cube_texture.png", SHADERS_SRC = "scene";
 
-    private ProgramScene program;
+    private Program program;
 
     private int vertexCount;
 
@@ -68,7 +67,7 @@ public class Scene {
 
     public Scene(GL4 gl4) {
 
-        program = new ProgramScene(gl4, Application.SHADERS_ROOT, SHADERS_SRC);
+        program = new Program(gl4);
 
         initTextureMaps(gl4);
 
@@ -119,7 +118,7 @@ public class Scene {
         int sceneVolumeInit = 20;
         Vec3i sceneVolume = new Vec3i(sceneVolumeInit);
 
-        ArrayList<Float> vertexDataArray = new ArrayList<>();
+        List<Float> vertexDataArray = new ArrayList<>();
 
         Mat4 matScale = new Mat4().scale(scale);
         Mat4 matTransform = new Mat4().translate(
@@ -176,7 +175,7 @@ public class Scene {
         gl4.glBindVertexArray(0);
     }
 
-    private void addCubeToScene(Mat4 mat, ArrayList<Float> vertexDataArray) {
+    private void addCubeToScene(Mat4 mat, List<Float> vertexDataArray) {
 
         Vec4 a = mat.mul(new Vec4(0, 0, 0, 1));
         Vec4 b = mat.mul(new Vec4(1, 0, 0, 1));
@@ -231,7 +230,7 @@ public class Scene {
         addCubeVertex(f.x, f.y, f.z, 0, 1, vertexDataArray);
     }
 
-    private void addCubeVertex(float fl0, float fl1, float fl2, float fl3, float fl4, ArrayList<Float> vertexData) {
+    private void addCubeVertex(float fl0, float fl1, float fl2, float fl3, float fl4, List<Float> vertexData) {
         vertexData.add(fl0);
         vertexData.add(fl1);
         vertexData.add(fl2);
@@ -245,11 +244,13 @@ public class Scene {
         gl4.glClearBufferfv(GL_DEPTH, 0, app.clearDepth);
         gl4.glEnable(GL_DEPTH_TEST);
 
+        app.projection[eye].mul(app.eyePos[eye], mvp).mul(app.hmdPose).toDfb(app.matBuffer);
+        
         if (app.showCubes) {
 
             gl4.glUseProgram(program.name);
 
-            gl4.glUniformMatrix4fv(program.matrixUL(), 1, false, getCurrentViewProjectionMatrix(app, eye));
+            gl4.glUniformMatrix4fv(program.matrixUL, 1, false, app.matBuffer);
 
             gl4.glBindVertexArray(vertexArrayName.get(0));
 
@@ -265,13 +266,11 @@ public class Scene {
 
         if (!isInputCapturedByAnotherProcess) {
 
+            // draw the controller axis lines
+            app.lineControllers.render(gl4, app);
         }
 
         gl4.glUseProgram(0);
-    }
-
-    private FloatBuffer getCurrentViewProjectionMatrix(Application app, int eye) {
-        return app.projection[eye].mul(app.eyePos[eye], mvp).mul(app.hmdPose).toDfb(app.matBuffer);
     }
 
     private class VertexDataScene {
@@ -292,6 +291,24 @@ public class Scene {
 
             position.toDbb(bb, index + OFFSET_POSITION);
             texCoord.toDbb(bb, index + OFFSET_TEX_COORD);
+        }
+    }
+
+    private class Program extends glsl.Program {
+
+        public int matrixUL = -1;
+
+        public Program(GL4 gl4) {
+
+            super(gl4, Application.SHADERS_ROOT, SHADERS_SRC);
+
+            matrixUL = gl4.glGetUniformLocation(name, "matrix");
+
+            gl4.glUseProgram(name);
+            gl4.glUniform1i(
+                    gl4.glGetUniformLocation(name, "myTexture"),
+                    Semantic.Sampler.MY_TEXTURE);
+            gl4.glUseProgram(0);
         }
     }
 }
