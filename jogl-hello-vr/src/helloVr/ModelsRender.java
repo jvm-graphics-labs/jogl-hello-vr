@@ -95,7 +95,7 @@ public class ModelsRender {
      */
     private String getTrackedDeviceString(IVRSystem hmd, int device, int prop, IntBuffer propError) {
 
-        int requiredBufferLen = hmd.GetStringTrackedDeviceProperty.apply(device, prop, null, 0, propError);
+        int requiredBufferLen = hmd.GetStringTrackedDeviceProperty.apply(device, prop, Pointer.NULL, 0, propError);
 
         if (requiredBufferLen == 0) {
             return "";
@@ -103,7 +103,7 @@ public class ModelsRender {
 
         Pointer stringPointer = new Memory(requiredBufferLen);
         hmd.GetStringTrackedDeviceProperty.apply(device, prop, stringPointer, requiredBufferLen, propError);
-        
+
         return stringPointer.getString(0);
     }
 
@@ -123,15 +123,15 @@ public class ModelsRender {
         }
 
         int error;
-        byte[] bs = Native.toByteArray(modelName);
-            PointerByReference modelReference_ = new PointerByReference();
+        PointerByReference modelPtrRef = new PointerByReference(modelReference.getPointer());
 
         while (true) {
 
-            Pointer stringPointer = new Memory(modelName.length());
-            
-            error = renderModels.LoadRenderModel_Async.apply(stringPointer, modelReference_);
-            
+            Pointer stringPointer = new Memory(modelName.length() + 1);
+            stringPointer.setString(0, modelName);
+
+            error = renderModels.LoadRenderModel_Async.apply(stringPointer, modelPtrRef);
+
             if (error != VR.EVRRenderModelError.VRRenderModelError_Loading) {
                 break;
             }
@@ -142,11 +142,8 @@ public class ModelsRender {
                 Logger.getLogger(ModelsRender.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        
-            modelReference_.
-            RenderModel_t m = new RenderModel_t(modelReference_.getValue());
-            m.read();
-            
+        RenderModel_t m = new RenderModel_t(modelPtrRef.getValue());
+        m.read();
 
         if (error != VR.EVRRenderModelError.VRRenderModelError_None) {
             System.err.println("Unable to load render model " + modelName + " - "
@@ -179,16 +176,13 @@ public class ModelsRender {
 
         Model model = new Model(modelName);
 
-        if(!model.init(gl4, modelReference, textureReference)) {
-            System.err.println("Unable to create GL model from render model "+modelName);            
-        }else {
+        if (!model.init(gl4, modelReference, textureReference)) {
+            System.err.println("Unable to create GL model from render model " + modelName);
+        } else {
             models.add(model);
         }
-        
+
 //        models.add(e)
-
-
-
         return null;
 //        });
 
