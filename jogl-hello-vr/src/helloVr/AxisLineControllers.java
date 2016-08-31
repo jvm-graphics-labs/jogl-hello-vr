@@ -80,11 +80,14 @@ public class AxisLineControllers {
 
     public void render(GL4 gl4, Application app) {
 
-        gl4.glUseProgram(program.name);
-        gl4.glUniformMatrix4fv(program.matrixUL, 1, false, app.matBuffer);
-        gl4.glBindVertexArray(vertexArrayName.get(0));
-        gl4.glDrawArrays(GL_LINES, 0, vertCount);
-        gl4.glBindVertexArray(0);
+        if (app.hmd.IsInputFocusCapturedByAnotherProcess.apply() == 0) {
+
+            gl4.glUseProgram(program.name);
+            gl4.glUniformMatrix4fv(program.matrixUL, 1, false, app.matBuffer);
+            gl4.glBindVertexArray(vertexArrayName.get(0));
+            gl4.glDrawArrays(GL_LINES, 0, vertCount);
+            gl4.glBindVertexArray(0);
+        }
     }
 
     public void update(GL4 gl4, Application app) {

@@ -14,7 +14,7 @@ public class Semantic {
     public static class Attr {
 
         public static final int POSITION = 0;
-        public static final int TERX_COORD = 1;
+        public static final int TEXT_COORD = 1;
         public static final int COLOR = 2;
         public static final int NORMAL = 3;
         public static final int UV_RED = 4;

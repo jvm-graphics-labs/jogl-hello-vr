@@ -167,8 +167,8 @@ public class Scene {
         gl4.glVertexAttribPointer(Semantic.Attr.POSITION, 3, GL_FLOAT, false, stride, offset);
 
         offset += Vec3.SIZE;
-        gl4.glEnableVertexAttribArray(Semantic.Attr.TERX_COORD);
-        gl4.glVertexAttribPointer(Semantic.Attr.TERX_COORD, 2, GL_FLOAT, false, stride, offset);
+        gl4.glEnableVertexAttribArray(Semantic.Attr.TEXT_COORD);
+        gl4.glVertexAttribPointer(Semantic.Attr.TEXT_COORD, 2, GL_FLOAT, false, stride, offset);
 
         gl4.glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -242,10 +242,9 @@ public class Scene {
 
         gl4.glClearBufferfv(GL_COLOR, 0, app.clearColor);
         gl4.glClearBufferfv(GL_DEPTH, 0, app.clearDepth);
+
         gl4.glEnable(GL_DEPTH_TEST);
 
-        app.projection[eye].mul(app.eyePos[eye], mvp).mul(app.hmdPose).toDfb(app.matBuffer);
-        
         if (app.showCubes) {
 
             gl4.glUseProgram(program.name);
@@ -261,16 +260,6 @@ public class Scene {
 
             gl4.glBindVertexArray(0);
         }
-
-        boolean isInputCapturedByAnotherProcess = app.hmd.IsInputFocusCapturedByAnotherProcess.apply() == 1;
-
-        if (!isInputCapturedByAnotherProcess) {
-
-            // draw the controller axis lines
-            app.axisLineControllers.render(gl4, app);
-        }
-
-        gl4.glUseProgram(0);
     }
 
     private class VertexDataScene {

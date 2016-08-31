@@ -1,6 +1,6 @@
 // Attributes
 #define POSITION    0
-#define TEX_COORD   1
+#define TEXT_COORD   1
 #define COLOR       2
 #define NORMAL      3
 #define UV_RED      4

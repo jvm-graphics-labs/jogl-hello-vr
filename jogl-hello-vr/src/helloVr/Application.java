@@ -86,13 +86,14 @@ public class Application implements GLEventListener, KeyListener {
     private Scene scene;
     private Distortion distortion;
     public AxisLineControllers axisLineControllers;
+    private ModelsRender modelsRender;
 
     public FloatBuffer clearColor = GLBuffers.newDirectFloatBuffer(4), clearDepth = GLBuffers.newDirectFloatBuffer(1),
             matBuffer = GLBuffers.newDirectFloatBuffer(16);
 
     public Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max],
             mat4DevicePose = new Mat4[VR.k_unMaxTrackedDeviceCount];
-    public Mat4 hmdPose = new Mat4();
+    public Mat4 hmdPose = new Mat4(), vp = new Mat4();
 
     private char[] devClassChar = new char[VR.k_unMaxTrackedDeviceCount];
 
@@ -202,7 +203,7 @@ public class Application implements GLEventListener, KeyListener {
         setupStereoRenderTargets(gl4);
         setupDistortion(gl4);
 
-        new ModelsRender().setupRenderModels(gl4, this);
+        setupRenderModels(gl4);
 
         axisLineControllers = new AxisLineControllers(gl4);
 
@@ -269,6 +270,11 @@ public class Application implements GLEventListener, KeyListener {
             return;
         }
         distortion = new Distortion(gl4, hmd);
+    }
+
+    private void setupRenderModels(GL4 gl4) {
+        modelsRender = new ModelsRender(gl4);
+        modelsRender.setupRenderModels(gl4, hmd);
     }
 
     private boolean initCompositor() {
@@ -361,7 +367,7 @@ public class Application implements GLEventListener, KeyListener {
             System.out.println("PoseCount: " + validPoseCount + "(" + poseClasses + ")" + ", Controllers: "
                     + trackedControllerCount);
         }
-
+        
         checkError(gl4, "display");
     }
 
@@ -375,8 +381,17 @@ public class Application implements GLEventListener, KeyListener {
             gl4.glEnable(GL_MULTISAMPLE);
 
             gl4.glBindFramebuffer(GL_FRAMEBUFFER, eyeDesc[eye].framebufferName.get(FramebufferDesc.Target.RENDER));
+
             gl4.glViewport(0, 0, renderSize.x, renderSize.y);
+
+            calcCurrentViewProjectionMatrix(eye);
+
             scene.render(gl4, this, eye);
+
+            axisLineControllers.render(gl4, this);  // draw the controller axis lines
+            
+            modelsRender.render(gl4, this);
+
             gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
             gl4.glDisable(GL_MULTISAMPLE);
@@ -390,6 +405,10 @@ public class Application implements GLEventListener, KeyListener {
         }
         gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+
+    private void calcCurrentViewProjectionMatrix(int eye) {
+        projection[eye].mul(eyePos[eye], vp).mul(hmdPose).toDfb(matBuffer);
     }
 
     private void updateHMDMatrixPose() {
@@ -498,4 +517,5 @@ public class Application implements GLEventListener, KeyListener {
             System.err.println("error " + error + ", " + string);
         }
     }
+
 }
