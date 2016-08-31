@@ -367,7 +367,7 @@ public class Application implements GLEventListener, KeyListener {
             System.out.println("PoseCount: " + validPoseCount + "(" + poseClasses + ")" + ", Controllers: "
                     + trackedControllerCount);
         }
-        
+
         checkError(gl4, "display");
     }
 
