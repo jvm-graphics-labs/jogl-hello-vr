@@ -1,6 +1,6 @@
 # jogl-hello-vr
 
-![Sample](http://imgur.com/wqqxti0.png)
+![Sample](http://imgur.com/HoIX75N.png)
 
 Steps:
 
