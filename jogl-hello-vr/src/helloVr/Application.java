@@ -284,11 +284,9 @@ public class Application implements GLEventListener, KeyListener {
 
         if (vBlank && glFinishHack) {
             /**
-             * $ HACKHACK. From gpuview profiling, it looks like there is a bug
-             * where two renders and a present happen right before and after the
-             * vsync causing all kinds of jittering issues. This glFinish()
-             * appears to clear that up. Temporary fix while I try to get nvidia
-             * to investigate this problem. 1/29/2014 mikesart.
+             * $ HACKHACK. From gpuview profiling, it looks like there is a bug where two renders and a present happen
+             * right before and after the vsync causing all kinds of jittering issues. This glFinish() appears to
+             * clear that up. Temporary fix while I try to get nvidia to investigate this problem. 1/29/2014 mikesart.
              */
             gl4.glFinish();
         }
@@ -299,16 +297,6 @@ public class Application implements GLEventListener, KeyListener {
         }
         // Clear
         {
-//            gl4.glBindFramebuffer(GL_FRAMEBUFFER, eyeDesc[0].framebufferName.get(FramebufferDesc.Target.RESOLVE));
-//            gl4.glViewport(0, 0, renderSize.x, renderSize.y);
-//            clearColor.put(0, 0.95f).put(1, 0.15f).put(2, 0.18f).put(3, 1.0f);
-//            gl4.glClearBufferfv(GL_COLOR, 0, clearColor);
-//
-//            gl4.glBindFramebuffer(GL_READ_FRAMEBUFFER, eyeDesc[0].framebufferName.get(FramebufferDesc.Target.RESOLVE));
-//            gl4.glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-//            gl4.glBlitFramebuffer(0, 0, renderSize.x, renderSize.y, 0, 0, renderSize.x, renderSize.y,
-//                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
-//            gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
             /**
              * We want to make sure the glFinish waits for the entire present to
              * complete, not just the submission of the command. So, we do a
@@ -324,17 +312,7 @@ public class Application implements GLEventListener, KeyListener {
         }
 
         // Spew out the controller and pose count whenever they change.
-//	if ( m_iTrackedControllerCount != m_iTrackedControllerCount_Last || m_iValidPoseCount != m_iValidPoseCount_Last )
-//	{
-//		m_iValidPoseCount_Last = m_iValidPoseCount;
-//		m_iTrackedControllerCount_Last = m_iTrackedControllerCount;
-//		
-//		dprintf( "PoseCount:%d(%s) Controllers:%d\n", m_iValidPoseCount, m_strPoseClasses.c_str(), m_iTrackedControllerCount );
-//	}
-        updateHMDMatrixPose();
-
-        // Spew out the controller and pose count whenever they change.
-        if (trackedControllerCount != trackedControllerCount_Last || validPoseCount != validPoseCount_Last) {
+	if (trackedControllerCount != trackedControllerCount_Last || validPoseCount != validPoseCount_Last) {
 
             validPoseCount_Last = validPoseCount;
             trackedControllerCount_Last = trackedControllerCount;
@@ -342,6 +320,7 @@ public class Application implements GLEventListener, KeyListener {
             System.out.println("PoseCount: " + validPoseCount + "(" + poseClasses + ")" + ", Controllers: "
                     + trackedControllerCount);
         }
+        updateHMDMatrixPose();
 
         checkError(gl4, "display");
     }

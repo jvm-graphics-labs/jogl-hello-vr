@@ -203,9 +203,6 @@ public class ModelsRender {
                 model.delete(gl4);
                 model = null;
             } else {
-                System.out.println("new model: " + modelName);
-                int a = renderModels.GetComponentCount.apply(modelName);
-                System.out.println("a " + a);
                 models.add(model);
             }
 
