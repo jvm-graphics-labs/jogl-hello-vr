@@ -14,6 +14,7 @@ import com.jogamp.opengl.util.GLBuffers;
 import glm.mat._4.Mat4;
 import glm.vec._3.Vec3;
 import glm.vec._4.Vec4;
+import glutil.BufferUtils;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -202,6 +203,17 @@ public class AxisLineControllers {
         }
     }
 
+    public void dispose(GL4 gl4) {
+        
+        gl4.glDeleteProgram(program.name);
+        gl4.glDeleteVertexArrays(1, vertexArrayName);
+        gl4.glDeleteBuffers(1, vertexBufferName);
+        
+        BufferUtils.destroyDirectBuffer(vertexArrayName);
+        BufferUtils.destroyDirectBuffer(vertexBufferName);
+        BufferUtils.destroyDirectBuffer(vertexBuffer);
+    } 
+    
     private class Program extends glsl.Program {
 
         public int matrixUL = -1;

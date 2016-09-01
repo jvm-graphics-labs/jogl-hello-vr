@@ -262,6 +262,18 @@ public class Scene {
         }
     }
 
+    public void dispose(GL4 gl4) {
+        
+        gl4.glDeleteProgram(program.name);
+        gl4.glDeleteVertexArrays(1, vertexArrayName);
+        gl4.glDeleteBuffers(1, vertexBufferName);
+        gl4.glDeleteTextures(1, textureName);
+        
+        BufferUtils.destroyDirectBuffer(vertexArrayName);
+        BufferUtils.destroyDirectBuffer(vertexBufferName);
+        BufferUtils.destroyDirectBuffer(textureName);
+    }
+    
     private class VertexDataScene {
 
         public static final int SIZE = Vec3.SIZE + Vec2.SIZE;

@@ -237,6 +237,16 @@ public class Distortion {
         gl4.glUseProgram(0);
     }
 
+    public void dispose(GL4 gl4) {
+        
+        gl4.glDeleteProgram(program.name);
+        gl4.glDeleteVertexArrays(1, vertexArrayName);
+        gl4.glDeleteBuffers(Buffer.MAX, bufferName);
+        
+        BufferUtils.destroyDirectBuffer(vertexArrayName);
+        BufferUtils.destroyDirectBuffer(bufferName);
+    }
+    
     private class VertexDataLens {
 
         public static final int SIZE = 4 * Vec2.SIZE;

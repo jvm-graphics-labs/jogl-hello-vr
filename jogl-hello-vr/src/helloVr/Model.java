@@ -196,5 +196,8 @@ public class Model {
         if (gl4.glIsTexture(textureName.get(0))) {
             gl4.glDeleteTextures(1, textureName);
         }
+        BufferUtils.destroyDirectBuffer(bufferName);
+        BufferUtils.destroyDirectBuffer(vertexArrayName);
+        BufferUtils.destroyDirectBuffer(textureName);
     }
 }

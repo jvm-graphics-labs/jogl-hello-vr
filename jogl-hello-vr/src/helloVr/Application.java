@@ -139,21 +139,13 @@ public class Application implements GLEventListener, KeyListener {
 
         // Loading the SteamVR Runtime
         hmd = VR.VR_Init(errorBuffer, VR.EVRApplicationType.VRApplication_Scene);
-        //        HmdMatrix44_t mat = app.hmd.GetProjectionMatrix.apply(0, app.nearClip, app.farClip,
-        //                VR.EGraphicsAPIConvention.API_OpenGL);
+
         if (errorBuffer.get(0) != VR.EVRInitError.VRInitError_None) {
             hmd = null;
             String s = "Unable to init VR runtime: " + VR.VR_GetVRInitErrorAsEnglishDescription(errorBuffer.get(0));
             throw new Error("VR_Init Failed, " + s);
         }
 
-        hmd.read();
-
-        //TODO:
-        // init controllers for the first time
-        //VRInput._updateConnectedControllers();
-        // init bounds & chaperone info
-        //VRBounds.init();
         GL4 gl4 = drawable.getGL().getGL4();
 
         gl4.setSwapInterval(vBlank ? 1 : 0);
@@ -168,25 +160,6 @@ public class Application implements GLEventListener, KeyListener {
             quit();
         }
 
-        //based on initialize from https://github.com/phr00t/jMonkeyVR/blob/76acf51383d9325b493aa8648494850d184e7a2b/src/jmevr/input/OpenVR.java
-        //not sure main method is my favorite place for all this stuff, TODO: cleanup (when I'm dead)
-//        hmdTrackedDevicePoseReference = new TrackedDevicePose_t.ByReference();
-//        hmdTrackedDevicePoses = (TrackedDevicePose_t[]) hmdTrackedDevicePoseReference.toArray(VR.k_unMaxTrackedDeviceCount);
-//        poseMatrices = new Mat4[VR.k_unMaxTrackedDeviceCount];
-//        for (int i = 0; i < poseMatrices.length; i++) {
-//            poseMatrices[i] = new Mat4();
-//        }
-//        //hmdPose = new Mat4();
-//
-//        // disable all this stuff which kills performance
-//        hmdTrackedDevicePoseReference.setAutoRead(false);
-//        hmdTrackedDevicePoseReference.setAutoWrite(false);
-//        hmdTrackedDevicePoseReference.setAutoSynch(false);
-//        for (int i = 0; i < VR.k_unMaxTrackedDeviceCount; i++) {
-//            hmdTrackedDevicePoses[i].setAutoRead(false);
-//            hmdTrackedDevicePoses[i].setAutoWrite(false);
-//            hmdTrackedDevicePoses[i].setAutoSynch(false);
-//        }
         checkError(gl4, "init");
     }
 
@@ -280,9 +253,6 @@ public class Application implements GLEventListener, KeyListener {
     private boolean initCompositor() {
 
         compositor = new IVRCompositor_FnTable(VR.VR_GetGenericInterface(VR.IVRCompositor_Version, errorBuffer));
-        compositor.setAutoSynch(false); // TODO necessary?
-        compositor.read();
-//        compositor.write();
 
         if (compositor == null || errorBuffer.get(0) != VR.EVRInitError.VRInitError_None) {
             System.err.println("Compositor initialization failed. See log file for details");
@@ -389,7 +359,7 @@ public class Application implements GLEventListener, KeyListener {
             scene.render(gl4, this, eye);
 
             axisLineControllers.render(gl4, this);  // draw the controller axis lines
-            
+
             modelsRender.render(gl4, this);
 
             gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -481,15 +451,31 @@ public class Application implements GLEventListener, KeyListener {
 
     @Override
     public void dispose(GLAutoDrawable drawable) {
+
+        if (hmd != null) {
+            VR.VR_Shutdown();
+            hmd = null;
+        }
+        
+        GL4 gl4 = drawable.getGL().getGL4();
+        
+        modelsRender.dispose(gl4);
+        scene.dispose(gl4);
+        axisLineControllers.dispose(gl4);
+        distortion.dispose(gl4);
+        
+        IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye].dispose(gl4));
+        
+        BufferUtils.destroyDirectBuffer(clearColor);
+        BufferUtils.destroyDirectBuffer(clearDepth);
+        BufferUtils.destroyDirectBuffer(errorBuffer);
+        BufferUtils.destroyDirectBuffer(matBuffer);
+
         System.exit(0);
     }
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-
-        GL4 gl4 = drawable.getGL().getGL4();
-
-        gl4.glViewport(0, 0, width, height);
     }
 
     @Override
