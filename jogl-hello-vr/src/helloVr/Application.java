@@ -81,7 +81,7 @@ public class Application implements GLEventListener, KeyListener {
             = (TrackedDevicePose_t[]) trackedDevicePosesReference.toArray(VR.k_unMaxTrackedDeviceCount);
 
     public FramebufferDesc[] eyeDesc = new FramebufferDesc[VR.EVREye.Max];
-    private Texture_t[] eyeTexture = new Texture_t[VR.EVREye.Max];
+    private Texture_t[] eyeTexture = {new Texture_t(), new Texture_t()};
 
     private Scene scene;
     private Distortion distortion;
@@ -175,7 +175,7 @@ public class Application implements GLEventListener, KeyListener {
 
         setupScene(gl4); // setupTextureMaps() inside
         setupCameras();
-        setupStereoRenderTargets(gl4);
+        setupStereoRenderTargets();
         setupDistortion(gl4);
 
         setupRenderModels(gl4);
@@ -224,7 +224,7 @@ public class Application implements GLEventListener, KeyListener {
         return matrixObj.inverse();
     }
 
-    private boolean setupStereoRenderTargets(GL4 gl4) {
+    private boolean setupStereoRenderTargets() {
         if (hmd == null) {
             return false;
         }
@@ -235,8 +235,6 @@ public class Application implements GLEventListener, KeyListener {
 
         BufferUtils.destroyDirectBuffer(width);
         BufferUtils.destroyDirectBuffer(height);
-
-        IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeTexture[eye] = new Texture_t());
 
         return true;
     }
@@ -509,7 +507,7 @@ public class Application implements GLEventListener, KeyListener {
 
             if (hmd.GetControllerState.apply(device, state) != 0) {
                 rbShowTrackedDevice[device] = state.ulButtonPressed == 0;
-                
+
                 if (state.ulButtonPressed != 0) {
                     // apparently only axis ID of 0 works and maximum value of duration  is 3999
                     hmd.TriggerHapticPulse.apply(device, 0, (short) 3999);
@@ -520,9 +518,8 @@ public class Application implements GLEventListener, KeyListener {
     }
 
     void processVREvent(VREvent_t event, GL4 gl4) {
-        
-//        System.err.println("event.eventType " + event.eventType);
 
+//        System.err.println("event.eventType " + event.eventType);
         switch (event.eventType) {
             case VR.EVREventType.VREvent_TrackedDeviceActivated:
                 //TODO | ask giuseppe for gl
