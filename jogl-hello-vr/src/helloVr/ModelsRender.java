@@ -95,7 +95,8 @@ public class ModelsRender {
     }
 
     /**
-     * Helper to get a string from a tracked device property and turn it into a String.
+     * Helper to get a string from a tracked device property and turn it into a
+     * String.
      *
      * @param hmd
      * @param device
@@ -110,7 +111,8 @@ public class ModelsRender {
     }
 
     /**
-     * Helper to get a string from a tracked device property and turn it into a String.
+     * Helper to get a string from a tracked device property and turn it into a
+     * String.
      *
      * @param hmd
      * @param device
@@ -203,7 +205,7 @@ public class ModelsRender {
             } else {
                 System.out.println("new model: " + modelName);
                 int a = renderModels.GetComponentCount.apply(modelName);
-                System.out.println("a "+a);
+                System.out.println("a " + a);
                 models.add(model);
             }
 
@@ -220,7 +222,9 @@ public class ModelsRender {
         gl4.glUseProgram(program.name);
 
         for (int trackedDevice = 0; trackedDevice < VR.k_unMaxTrackedDeviceCount; trackedDevice++) {
-
+            if (app.rbShowTrackedDevice[trackedDevice] == false) {
+                continue;
+            }
             if (trackedDeviceToRenderModel[trackedDevice] == null || !showTrackedDevice[trackedDevice]) {
                 continue;
             }
@@ -243,8 +247,8 @@ public class ModelsRender {
             trackedDeviceToRenderModel[trackedDevice].render(gl4);
         }
     }
-    
-    public void dispose(GL4 gl4) {        
+
+    public void dispose(GL4 gl4) {
         gl4.glDeleteProgram(program.name);
         models.forEach(model -> model.delete(gl4));
         models.clear();

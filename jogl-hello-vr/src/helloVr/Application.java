@@ -97,7 +97,7 @@ public class Application implements GLEventListener, KeyListener {
             mat4DevicePose = new Mat4[VR.k_unMaxTrackedDeviceCount];
     public Mat4 hmdPose = new Mat4(), vp = new Mat4();
 
-    private boolean[] rbShowTrackedDevice = new boolean[VR.k_unMaxTrackedDeviceCount];
+    public boolean[] rbShowTrackedDevice = new boolean[VR.k_unMaxTrackedDeviceCount];
 
     private char[] devClassChar = new char[VR.k_unMaxTrackedDeviceCount];
 
@@ -269,8 +269,8 @@ public class Application implements GLEventListener, KeyListener {
     public void display(GLAutoDrawable drawable) {
 
         GL4 gl4 = drawable.getGL().getGL4();
-//        handleInput();
-        // for now as fast as possible
+        handleInput(gl4);
+//         for now as fast as possible
         if (hmd != null) {
 
             axisLineControllers.update(gl4, this);  // = DrawControllers();
@@ -463,16 +463,16 @@ public class Application implements GLEventListener, KeyListener {
             VR.VR_Shutdown();
             hmd = null;
         }
-        
+
         GL4 gl4 = drawable.getGL().getGL4();
-        
+
         modelsRender.dispose(gl4);
         scene.dispose(gl4);
         axisLineControllers.dispose(gl4);
         distortion.dispose(gl4);
-        
+
         IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye].dispose(gl4));
-        
+
         BufferUtils.destroyDirectBuffer(clearColor);
         BufferUtils.destroyDirectBuffer(clearDepth);
         BufferUtils.destroyDirectBuffer(errorBuffer);
@@ -497,31 +497,37 @@ public class Application implements GLEventListener, KeyListener {
         }
     }
 
-    void handleInput() {
-        // really in here or ???
-        // =====================================================================
+    void handleInput(GL4 gl4) {
+
         VREvent_t event = new VREvent_t();
-        while (hmd.PollNextEvent.apply(event, GL_LINEAR) != 0) {
-            processVREvent(event);
+        while (hmd.PollNextEvent.apply(event, event.size()) != 0) {
+
+            processVREvent(event, gl4);
         }
-
         for (int device = 0; device < VR.k_unMaxTrackedDeviceCount; device++) {
-
             VRControllerState_t state = new VRControllerState_t();
+//            System.err.println(device +". device - state =" + hmd.GetControllerState.apply(device, state));
 
             if (hmd.GetControllerState.apply(device, state) != 0) {
                 rbShowTrackedDevice[device] = state.ulButtonPressed == 0;
+                
+                if (state.ulButtonPressed != 0) {
+                    // apparently only axis ID of 0 works and maximum value of duration  is 3999
+                    hmd.TriggerHapticPulse.apply(device, 0, (short) 3999);
+                }
+
             }
         }
-        // =====================================================================
     }
 
-    void processVREvent(VREvent_t event) {
+    void processVREvent(VREvent_t event, GL4 gl4) {
+        
+//        System.err.println("event.eventType " + event.eventType);
 
         switch (event.eventType) {
             case VR.EVREventType.VREvent_TrackedDeviceActivated:
                 //TODO | ask giuseppe for gl
-                modelsRender.setupRenderModelForTrackedDevice(null, event.trackedDeviceIndex, hmd);
+                modelsRender.setupRenderModelForTrackedDevice(gl4, event.trackedDeviceIndex, hmd);
                 System.out.println("Device %u attached. Setting up render model.\n" + event.trackedDeviceIndex);
                 break;
             case VR.EVREventType.VREvent_TrackedDeviceDeactivated:
