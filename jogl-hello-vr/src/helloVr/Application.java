@@ -175,14 +175,13 @@ public class Application implements GLEventListener, KeyListener {
 
         setupScene(gl4); // setupTextureMaps() inside
         setupCameras();
-        setupStereoRenderTargets();
+        setupStereoRenderTargets(gl4);
         setupDistortion(gl4);
 
         setupRenderModels(gl4);
 
         axisLineControllers = new AxisLineControllers(gl4);
 
-        IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye] = new FramebufferDesc(gl4, renderSize));
         IntStreamEx.range(mat4DevicePose.length).forEach(mat -> mat4DevicePose[mat] = new Mat4());
 
         return true;
@@ -224,7 +223,7 @@ public class Application implements GLEventListener, KeyListener {
         return matrixObj.inverse();
     }
 
-    private boolean setupStereoRenderTargets() {
+    private boolean setupStereoRenderTargets(GL4 gl4) {
         if (hmd == null) {
             return false;
         }
@@ -232,6 +231,8 @@ public class Application implements GLEventListener, KeyListener {
 
         hmd.GetRecommendedRenderTargetSize.apply(width, height);
         renderSize.set(width.get(0), height.get(0));
+
+        IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye] = new FramebufferDesc(gl4, renderSize));
 
         BufferUtils.destroyDirectBuffer(width);
         BufferUtils.destroyDirectBuffer(height);
