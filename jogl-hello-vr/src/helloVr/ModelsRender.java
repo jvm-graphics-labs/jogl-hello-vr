@@ -72,7 +72,7 @@ public class ModelsRender {
      *
      * @param trackedDeviceIndex
      */
-    private void setupRenderModelForTrackedDevice(GL4 gl4, int trackedDeviceIndex, IVRSystem hmd) {
+    public void setupRenderModelForTrackedDevice(GL4 gl4, int trackedDeviceIndex, IVRSystem hmd) {
 
         if (trackedDeviceIndex >= VR.k_unMaxTrackedDeviceCount) {
             return;

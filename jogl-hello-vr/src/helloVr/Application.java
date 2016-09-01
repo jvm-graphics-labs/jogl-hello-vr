@@ -46,6 +46,8 @@ import vr.IVRSystem;
 import vr.Texture_t;
 import vr.TrackedDevicePose_t;
 import vr.VR;
+import vr.VRControllerState_t;
+import vr.VREvent_t;
 
 /**
  *
@@ -94,6 +96,8 @@ public class Application implements GLEventListener, KeyListener {
     public Mat4[] projection = new Mat4[VR.EVREye.Max], eyePos = new Mat4[VR.EVREye.Max],
             mat4DevicePose = new Mat4[VR.k_unMaxTrackedDeviceCount];
     public Mat4 hmdPose = new Mat4(), vp = new Mat4();
+
+    private boolean[] rbShowTrackedDevice = new boolean[VR.k_unMaxTrackedDeviceCount];
 
     private char[] devClassChar = new char[VR.k_unMaxTrackedDeviceCount];
 
@@ -295,7 +299,7 @@ public class Application implements GLEventListener, KeyListener {
     public void display(GLAutoDrawable drawable) {
 
         GL4 gl4 = drawable.getGL().getGL4();
-
+//        handleInput();
         // for now as fast as possible
         if (hmd != null) {
 
@@ -312,10 +316,11 @@ public class Application implements GLEventListener, KeyListener {
 
         if (vBlank && glFinishHack) {
             /**
-             * $ HACKHACK. From gpuview profiling, it looks like there is a bug where two renders and a present
-             * happen right before and after the vsync causing all kinds of jittering issues. This glFinish()
-             * appears to clear that up. Temporary fix while I try to get nvidia to investigate this problem.
-             * 1/29/2014 mikesart.
+             * $ HACKHACK. From gpuview profiling, it looks like there is a bug
+             * where two renders and a present happen right before and after the
+             * vsync causing all kinds of jittering issues. This glFinish()
+             * appears to clear that up. Temporary fix while I try to get nvidia
+             * to investigate this problem. 1/29/2014 mikesart.
              */
             gl4.glFinish();
         }
@@ -337,8 +342,10 @@ public class Application implements GLEventListener, KeyListener {
 //                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
 //            gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
             /**
-             * We want to make sure the glFinish waits for the entire present to complete, not just the submission
-             * of the command. So, we do a clear here right here so the glFinish will wait fully for the swap.
+             * We want to make sure the glFinish waits for the entire present to
+             * complete, not just the submission of the command. So, we do a
+             * clear here right here so the glFinish will wait fully for the
+             * swap.
              */
             gl4.glClearBufferfv(GL_COLOR, 0, clearColor);
         }
@@ -389,7 +396,7 @@ public class Application implements GLEventListener, KeyListener {
             scene.render(gl4, this, eye);
 
             axisLineControllers.render(gl4, this);  // draw the controller axis lines
-            
+
             modelsRender.render(gl4, this);
 
             gl4.glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -498,8 +505,49 @@ public class Application implements GLEventListener, KeyListener {
             case KeyEvent.VK_ESCAPE:
                 quit();
                 break;
+            case KeyEvent.VK_C:
+                showCubes = !showCubes;
+                break;
         }
     }
+
+    void handleInput() {
+        // really in here or ???
+        // =====================================================================
+        VREvent_t event = new VREvent_t();
+        while (hmd.PollNextEvent.apply(event, GL_LINEAR) != 0) {
+            processVREvent(event);
+        }
+
+        for (int device = 0; device < VR.k_unMaxTrackedDeviceCount; device++) {
+
+            VRControllerState_t state = new VRControllerState_t();
+
+            if (hmd.GetControllerState.apply(device, state) != 0) {
+                rbShowTrackedDevice[device] = state.ulButtonPressed == 0;
+            }
+        }
+        // =====================================================================
+    }
+
+    void processVREvent(VREvent_t event) {
+
+        switch (event.eventType) {
+            case VR.EVREventType.VREvent_TrackedDeviceActivated:
+                //TODO | ask giuseppe for gl
+                modelsRender.setupRenderModelForTrackedDevice(null, event.trackedDeviceIndex, hmd);
+                System.out.println("Device %u attached. Setting up render model.\n" + event.trackedDeviceIndex);
+                break;
+            case VR.EVREventType.VREvent_TrackedDeviceDeactivated:
+                System.out.println("Device %u detached.\n" + event.trackedDeviceIndex);
+                break;
+            case VR.EVREventType.VREvent_TrackedDeviceUpdated:
+                System.out.println("Device %u updated.\n" + event.trackedDeviceIndex);
+                break;
+        }
+    }
+
+    ;
 
     private void quit() {
         animator.remove(glWindow);
