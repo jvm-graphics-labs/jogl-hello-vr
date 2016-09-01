@@ -137,7 +137,6 @@ public class ModelsRender {
             IntBuffer errorBuffer = GLBuffers.newDirectIntBuffer(1);
             IVRRenderModels_FnTable renderModels = new IVRRenderModels_FnTable(
                     VR.VR_GetGenericInterface(VR.IVRRenderModels_Version, errorBuffer));
-            renderModels.read();
 
             if (errorBuffer.get(0) != VR.EVRRenderModelError.VRRenderModelError_None) {
                 return null;
@@ -164,7 +163,6 @@ public class ModelsRender {
                 }
             }
             RenderModel_t renderModel = new RenderModel_t(modelPtr.getValue());
-            renderModel.read();
 
             if (error != VR.EVRRenderModelError.VRRenderModelError_None) {
                 System.err.println("Unable to load render model " + modelName + " - "
@@ -189,7 +187,6 @@ public class ModelsRender {
                 }
             }
             RenderModel_TextureMap_t renderModelTexture = new RenderModel_TextureMap_t(texturePtr.getValue());
-            renderModelTexture.read();
 
             if (error != VR.EVRRenderModelError.VRRenderModelError_None) {
                 System.err.println("Unable to load render texture id " + renderModel.diffuseTextureId
@@ -204,7 +201,9 @@ public class ModelsRender {
                 model.delete(gl4);
                 model = null;
             } else {
-                System.out.println("new model, " + modelName);
+                System.out.println("new model: " + modelName);
+                int a = renderModels.GetComponentCount.apply(modelName);
+                System.out.println("a "+a);
                 models.add(model);
             }
 
@@ -243,6 +242,12 @@ public class ModelsRender {
 
             trackedDeviceToRenderModel[trackedDevice].render(gl4);
         }
+    }
+    
+    public void dispose(GL4 gl4) {        
+        gl4.glDeleteProgram(program.name);
+        models.forEach(model -> model.delete(gl4));
+        models.clear();
     }
 
     private class Program extends glsl.Program {

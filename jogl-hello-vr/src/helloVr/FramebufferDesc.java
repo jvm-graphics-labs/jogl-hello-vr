@@ -24,6 +24,7 @@ import static com.jogamp.opengl.GL2ES3.GL_TEXTURE_MAX_LEVEL;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.util.GLBuffers;
 import glm.vec._2.i.Vec2i;
+import glutil.BufferUtils;
 import java.nio.IntBuffer;
 
 /**
@@ -95,12 +96,14 @@ public class FramebufferDesc {
         return true;
     }
 
-    private boolean delete(GL4 gl4) {
+    public void dispose(GL4 gl4) {
 
         gl4.glDeleteFramebuffers(Target.MAX, framebufferName);
         gl4.glDeleteTextures(Target.MAX, textureName);
         gl4.glDeleteRenderbuffers(1, depthBufferName);
-
-        return true;
+        
+        BufferUtils.destroyDirectBuffer(framebufferName);
+        BufferUtils.destroyDirectBuffer(textureName);
+        BufferUtils.destroyDirectBuffer(depthBufferName);
     }
 }
