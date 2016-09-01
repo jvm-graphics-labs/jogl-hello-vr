@@ -78,8 +78,6 @@ public class Application implements GLEventListener, KeyListener {
     public TrackedDevicePose_t[] trackedDevicePose
             = (TrackedDevicePose_t[]) trackedDevicePosesReference.toArray(VR.k_unMaxTrackedDeviceCount);
 
-    private float nearClip = 0.1f, farClip = 30.0f;
-
     public FramebufferDesc[] eyeDesc = new FramebufferDesc[VR.EVREye.Max];
     private Texture_t[] eyeTexture = new Texture_t[VR.EVREye.Max];
 
@@ -204,6 +202,7 @@ public class Application implements GLEventListener, KeyListener {
         if (hmd == null) {
             return new Mat4();
         }
+        float nearClip = 0.1f, farClip = 30.0f;
         HmdMatrix44_t mat = hmd.GetProjectionMatrix.apply(eye, nearClip, farClip, VR.EGraphicsAPIConvention.API_OpenGL);
         return new Mat4(mat.m);
     }
@@ -456,16 +455,16 @@ public class Application implements GLEventListener, KeyListener {
             VR.VR_Shutdown();
             hmd = null;
         }
-        
+
         GL4 gl4 = drawable.getGL().getGL4();
-        
+
         modelsRender.dispose(gl4);
         scene.dispose(gl4);
         axisLineControllers.dispose(gl4);
         distortion.dispose(gl4);
-        
+
         IntStreamEx.range(VR.EVREye.Max).forEach(eye -> eyeDesc[eye].dispose(gl4));
-        
+
         BufferUtils.destroyDirectBuffer(clearColor);
         BufferUtils.destroyDirectBuffer(clearDepth);
         BufferUtils.destroyDirectBuffer(errorBuffer);
