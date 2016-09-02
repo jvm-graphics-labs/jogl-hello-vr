@@ -312,7 +312,7 @@ public class Application implements GLEventListener, KeyListener {
         }
 
         // Spew out the controller and pose count whenever they change.
-	if (trackedControllerCount != trackedControllerCount_Last || validPoseCount != validPoseCount_Last) {
+        if (trackedControllerCount != trackedControllerCount_Last || validPoseCount != validPoseCount_Last) {
 
             validPoseCount_Last = validPoseCount;
             trackedControllerCount_Last = trackedControllerCount;
@@ -413,9 +413,9 @@ public class Application implements GLEventListener, KeyListener {
                     poseClasses += devClassChar[device];
                 }
             }
-            if (trackedDevicePose[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid == 1) {
-                mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
-            }
+        }
+        if (trackedDevicePose[VR.k_unTrackedDeviceIndex_Hmd].bPoseIsValid == 1) {
+            mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
         }
     }
 
