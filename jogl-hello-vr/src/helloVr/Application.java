@@ -206,25 +206,14 @@ public class Application implements GLEventListener, KeyListener {
             return new Mat4();
         }
         float nearClip = 0.1f, farClip = 30.0f;
-        HmdMatrix44_t mat = hmd.GetProjectionMatrix.apply(eye, nearClip, farClip, VR.EGraphicsAPIConvention.API_OpenGL);
-        return new Mat4(
-                mat.m[0], mat.m[4], mat.m[8], mat.m[12],
-                mat.m[1], mat.m[5], mat.m[9], mat.m[13],
-                mat.m[2], mat.m[6], mat.m[10], mat.m[14],
-                mat.m[3], mat.m[7], mat.m[11], mat.m[15]);
+        return new Mat4(hmd.GetProjectionMatrix.apply(eye, nearClip, farClip, VR.EGraphicsAPIConvention.API_OpenGL));
     }
 
     private Mat4 getHmdMatrixPoseEye(int eye) {
         if (hmd == null) {
             return new Mat4();
         }
-        HmdMatrix34_t mat = hmd.GetEyeToHeadTransform.apply(eye);
-        Mat4 matrixObj = new Mat4(
-                mat.m[0], mat.m[4], mat.m[8], 0,
-                mat.m[1], mat.m[5], mat.m[9], 0,
-                mat.m[2], mat.m[6], mat.m[10], 0,
-                mat.m[3], mat.m[7], mat.m[11], 1);
-        return matrixObj.inverse();
+        return new Mat4(hmd.GetEyeToHeadTransform.apply(eye)).inverse();
     }
 
     private boolean setupStereoRenderTargets(GL4 gl4) {
@@ -383,8 +372,7 @@ public class Application implements GLEventListener, KeyListener {
             if (trackedDevicePose[device].bPoseIsValid == 1) {
 
                 validPoseCount++;
-                convertStreamVRMatrixToMat4(trackedDevicePose[device].mDeviceToAbsoluteTracking,
-                        mat4DevicePose[device]);
+                mat4DevicePose[device].set(trackedDevicePose[device].mDeviceToAbsoluteTracking);
 
                 if (devClassChar[device] == 0) {
 
@@ -422,21 +410,7 @@ public class Application implements GLEventListener, KeyListener {
             mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
         }
     }
-
-    /**
-     * Converts a SteamVR matrix to our local matrix class.
-     *
-     * @param matPose
-     * @return
-     */
-    private void convertStreamVRMatrixToMat4(HmdMatrix34_t matPose, Mat4 mat4) {
-        mat4.set(
-                matPose.m[0], matPose.m[4], matPose.m[8], 0.0f,
-                matPose.m[1], matPose.m[5], matPose.m[9], 0.0f,
-                matPose.m[2], matPose.m[6], matPose.m[10], 0.0f,
-                matPose.m[3], matPose.m[7], matPose.m[11], 1.0f);
-    }
-
+    
     @Override
     public void dispose(GLAutoDrawable drawable) {
 
