@@ -12,5 +12,4 @@ Jogl porting of the original hello vr sample, plus several enhances, like:
 
 Steps:
 
-- add all the jars you find under `/libs`
-
+- add jars under `\lib`
