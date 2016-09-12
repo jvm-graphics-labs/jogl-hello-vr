@@ -12,5 +12,7 @@ Jogl porting of the original hello vr sample, plus several enhances, like:
 
 Steps:
 
-- add all the jars you find under `/libs`
+- add jars under `\lib`
 
+
+If it is stuttering, disable v-sync and try to play with `glFlush` and `glFinish` inside `display()`
