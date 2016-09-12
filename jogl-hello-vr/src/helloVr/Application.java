@@ -260,6 +260,7 @@ public class Application implements GLEventListener, KeyListener {
     public void display(GLAutoDrawable drawable) {
 
         GL4 gl4 = drawable.getGL().getGL4();
+
         handleInput(gl4);
 //         for now as fast as possible
         if (hmd != null) {
@@ -410,7 +411,7 @@ public class Application implements GLEventListener, KeyListener {
             mat4DevicePose[VR.k_unTrackedDeviceIndex_Hmd].inverse(hmdPose);
         }
     }
-    
+
     @Override
     public void dispose(GLAutoDrawable drawable) {
 
@@ -454,20 +455,25 @@ public class Application implements GLEventListener, KeyListener {
 
     void handleInput(GL4 gl4) {
 
+        // Process SteamVR events
         VREvent_t event = new VREvent_t();
         while (hmd.PollNextEvent.apply(event, event.size()) != 0) {
 
-            processVREvent(event, gl4);
+            processVREvent(gl4, event);
         }
+
+        // Process SteamVR controller state
         for (int device = 0; device < VR.k_unMaxTrackedDeviceCount; device++) {
+
             VRControllerState_t state = new VRControllerState_t();
-//            System.err.println(device +". device - state =" + hmd.GetControllerState.apply(device, state));
 
             if (hmd.GetControllerState.apply(device, state) != 0) {
+
                 rbShowTrackedDevice[device] = state.ulButtonPressed == 0;
 
+                // let's test haptic impulse too..
                 if (state.ulButtonPressed != 0) {
-                    // apparently only axis ID of 0 works and maximum value of duration  is 3999
+                    // apparently only axis ID 0 works, maximum duration value is 3999
                     hmd.TriggerHapticPulse.apply(device, 0, (short) 3999);
                 }
 
@@ -475,25 +481,25 @@ public class Application implements GLEventListener, KeyListener {
         }
     }
 
-    void processVREvent(VREvent_t event, GL4 gl4) {
+    void processVREvent(GL4 gl4, VREvent_t event) {
 
-//        System.err.println("event.eventType " + event.eventType);
         switch (event.eventType) {
+
             case VR.EVREventType.VREvent_TrackedDeviceActivated:
                 //TODO | ask giuseppe for gl
                 modelsRender.setupRenderModelForTrackedDevice(gl4, event.trackedDeviceIndex, hmd);
                 System.out.println("Device %u attached. Setting up render model.\n" + event.trackedDeviceIndex);
                 break;
+
             case VR.EVREventType.VREvent_TrackedDeviceDeactivated:
                 System.out.println("Device %u detached.\n" + event.trackedDeviceIndex);
                 break;
+
             case VR.EVREventType.VREvent_TrackedDeviceUpdated:
                 System.out.println("Device %u updated.\n" + event.trackedDeviceIndex);
                 break;
         }
     }
-
-    ;
 
     private void quit() {
         animator.remove(glWindow);

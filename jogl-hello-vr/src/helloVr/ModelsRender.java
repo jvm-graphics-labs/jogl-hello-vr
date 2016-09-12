@@ -70,7 +70,9 @@ public class ModelsRender {
     /**
      * Create/destroy GL a Render Model for a single tracked device.
      *
+     * @param gl4
      * @param trackedDeviceIndex
+     * @param hmd
      */
     public void setupRenderModelForTrackedDevice(GL4 gl4, int trackedDeviceIndex, IVRSystem hmd) {
 
@@ -134,19 +136,22 @@ public class ModelsRender {
 
     private Model findOrLoad(GL4 gl4, String modelName) {
 
-        return StreamEx.of(models).findAny(m -> m.name.equals(modelName)).orElseGet(() -> {
-            // load the model if we didn't find one
+        Model model = StreamEx.of(models).findAny(m -> m.name.equals(modelName)).orElse(null);
+
+        // load the model if we didn't find one
+        if (model == null) {
+
             IntBuffer errorBuffer = GLBuffers.newDirectIntBuffer(1);
             IVRRenderModels_FnTable renderModels = new IVRRenderModels_FnTable(
                     VR.VR_GetGenericInterface(VR.IVRRenderModels_Version, errorBuffer));
-
+            
             if (errorBuffer.get(0) != VR.EVRRenderModelError.VRRenderModelError_None) {
                 return null;
             }
 
             int error;
             PointerByReference modelPtr = new PointerByReference();
-
+            
             while (true) {
 
                 Pointer stringPointer = new Memory(modelName.length() + 1);
@@ -164,6 +169,7 @@ public class ModelsRender {
                     Logger.getLogger(ModelsRender.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            
             RenderModel_t renderModel = new RenderModel_t(modelPtr.getValue());
 
             if (error != VR.EVRRenderModelError.VRRenderModelError_None) {
@@ -171,7 +177,7 @@ public class ModelsRender {
                         + renderModels.GetRenderModelErrorNameFromEnum.apply(error));
                 return null; // move on to the next tracked device
             }
-
+            
             PointerByReference texturePtr = new PointerByReference();
 
             while (true) {
@@ -196,7 +202,7 @@ public class ModelsRender {
                 return null; // move on to the next tracked device
             }
 
-            Model model = new Model(modelName);
+            model = new Model(modelName);
 
             if (!model.init(gl4, renderModel, renderModelTexture)) {
                 System.err.println("Unable to create GL model from render model " + modelName);
@@ -208,9 +214,9 @@ public class ModelsRender {
 
             renderModels.FreeRenderModel.apply(renderModel);
             renderModels.FreeTexture.apply(renderModelTexture);
+        };
 
-            return model;
-        });
+        return model;
     }
 
     public void render(GL4 gl4, Application app) {
