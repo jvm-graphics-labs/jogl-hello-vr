@@ -8,11 +8,8 @@ import buffer.destroy
 import com.jogamp.opengl.GL
 import com.jogamp.opengl.GL2ES3.*
 import com.jogamp.opengl.GL3
-import com.jogamp.opengl.util.GLBuffers
 import com.sun.jna.ptr.IntByReference
-import extensions.floatBufferOf
-import extensions.shortBufferOf
-import extensions.url
+import extensions.*
 import glsl.Program
 import main.*
 import mat.Mat4
@@ -26,7 +23,7 @@ import java.awt.image.DataBufferByte
 import javax.imageio.ImageIO
 
 
-val bufferMat = GLBuffers.newDirectFloatBuffer(16)
+val bufferMat = floatBufferBig(16)
 val clearColor = floatBufferOf(0f, 0f, 0f, 1f)
 val clearDepth = floatBufferOf(1f)
 
@@ -53,11 +50,10 @@ class CGLRenderModel(val renderModelName: String, gl: GL3, vrModel: RenderModel_
         val MAX = 2
     }
 
-    var bufferName = GLBuffers.newDirectIntBuffer(Buffer.MAX)
-    val vertexArrayName = GLBuffers.newDirectIntBuffer(1)
-    val textureName = GLBuffers.newDirectIntBuffer(1)
+    var bufferName = intBufferBig(Buffer.MAX)
+    val vertexArrayName = intBufferBig(1)
+    val textureName = intBufferBig(1)
     var vertexCount = 0
-
     /**
      * Purpose: Allocates and populates the GL resources for a render model
      */
@@ -70,7 +66,7 @@ class CGLRenderModel(val renderModelName: String, gl: GL3, vrModel: RenderModel_
             glBindVertexArray(vertexArrayName[0])
 
             // Populate a vertex buffer
-            val vertexBuffer = GLBuffers.newDirectByteBuffer(vrModel.vertices)
+            val vertexBuffer = vrModel.vertices!!.toByteBuffer()
             glGenBuffers(Buffer.MAX, bufferName)
             glBindBuffer(GL_ARRAY_BUFFER, bufferName[Buffer.VERTEX])
             glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity().L, vertexBuffer, GL_STATIC_DRAW)
@@ -84,14 +80,14 @@ class CGLRenderModel(val renderModelName: String, gl: GL3, vrModel: RenderModel_
                     RenderModel_Vertex_t.TEX_COORD_OFFSET.L)
 
             // Create and populate the index buffer
-            val indexBuffer = GLBuffers.newDirectByteBuffer(vrModel.indices)
+            val indexBuffer = vrModel.indices!!.toByteBuffer()
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferName[Buffer.INDEX])
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer.capacity().L, indexBuffer, GL_STATIC_DRAW)
 
             glBindVertexArray(0)
 
             // create and populate the texture
-            val texBuffer = GLBuffers.newDirectByteBuffer(vrDiffuseTexture.textureMapData)
+            val texBuffer = vrDiffuseTexture.textureMapData!!.toByteBuffer()
             glGenTextures(1, textureName)
             glActiveTexture(GL_TEXTURE0 + Semantic.Sampler.DIFFUSE)
             glBindTexture(GL_TEXTURE_2D, textureName[0])
@@ -107,7 +103,7 @@ class CGLRenderModel(val renderModelName: String, gl: GL3, vrModel: RenderModel_
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
 
-            val largest = GLBuffers.newDirectFloatBuffer(1)
+            val largest = floatBufferBig(1)
             glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, largest)
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, largest[0])
 
@@ -160,9 +156,9 @@ class Scene(gl: GL3) {
     val scaleSpacing = 4f
     val sceneVolume = Vec3i(20)     // if you want something other than the default 20x20x20
     var vertexCount = 0
-    val vertexArrayName = GLBuffers.newDirectIntBuffer(1)
-    val bufferName = GLBuffers.newDirectIntBuffer(1)
-    val textureName = GLBuffers.newDirectIntBuffer(1)
+    val vertexArrayName = intBufferBig(1)
+    val bufferName = intBufferBig(1)
+    val textureName = intBufferBig(1)
     val controllerAxes = ControllerAxes(gl)
     val modelProgram = Program(gl, arrayOf("render-model.vert", "render-model.frag"), arrayOf("matrix", "diffuse"))
 
@@ -209,7 +205,7 @@ class Scene(gl: GL3) {
             glGenVertexArrays(1, vertexArrayName)
             glBindVertexArray(vertexArrayName[0])
 
-            val buffer = GLBuffers.newDirectFloatBuffer(vertDataArray.toFloatArray())
+            val buffer = vertDataArray.toFloatArray().toByteBuffer()
 
             glGenBuffers(1, bufferName)
             glBindBuffer(GL_ARRAY_BUFFER, bufferName[0])
@@ -228,14 +224,15 @@ class Scene(gl: GL3) {
             glBindVertexArray(0)
             glDisableVertexAttribArray(Semantic.Attr.POSITION)
             glDisableVertexAttribArray(Semantic.Attr.TEX_COORD)
+
+            buffer.destroy()
         }
     }
 
     fun setupTextureMaps(gl: GL3) = with(gl) {
 
-        val bufferedImage = ImageIO.read("/cube_texture.png".url)
-        val data = (bufferedImage.raster.dataBuffer as DataBufferByte).data
-        val dataBuffer = GLBuffers.newDirectByteBuffer(data)
+        val bufferedImage = ImageIO.read("cube_texture.png".URL(this::class.java))
+        val dataBuffer = (bufferedImage.raster.dataBuffer as DataBufferByte).data.toByteBuffer()
 
         glGenTextures(1, textureName)
         glActiveTexture(GL_TEXTURE0)
@@ -250,7 +247,7 @@ class Scene(gl: GL3) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-        val fLargest = GLBuffers.newDirectFloatBuffer(1)
+        val fLargest = floatBufferBig(1)
         glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, fLargest)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, fLargest[0])
 
@@ -379,11 +376,11 @@ class Scene(gl: GL3) {
     class ControllerAxes(gl: GL3) {
 
         val program = Program(gl, arrayOf("controller.vert", "controller.frag"), arrayOf("matrix"))
-        val vertexArrayName = GLBuffers.newDirectIntBuffer(1)
-        val bufferName = GLBuffers.newDirectIntBuffer(1)
-        val bufferMat = GLBuffers.newDirectFloatBuffer(16)
-        val vertexBuffer = GLBuffers.newDirectFloatBuffer(3 * 4 * 3 + 3 * 4)
-        var vertcount = 0
+        val vertexArrayName = intBufferBig(1)
+        val bufferName = intBufferBig(1)
+        val bufferMat = floatBufferBig(16)
+        val vertexBuffer = floatBufferBig(3 * 4 * 3 + 3 * 4)
+        var vertCount = 0
 
         /** Purpose: Draw all of the controllers as X/Y/Z lines */
         fun updateControllerAxes(gl: GL3) {
@@ -393,7 +390,7 @@ class Scene(gl: GL3) {
 
             val vertDataArray = FloatArray(3 * 4 * 3 + 3 * 4)
 
-            vertcount = 0
+            vertCount = 0
             controllerCount = 0
 
 
@@ -432,7 +429,7 @@ class Scene(gl: GL3) {
 
                     color.to(vertDataArray, stride * it + 12)
 
-                    vertcount += 2
+                    vertCount += 2
                 }
 
                 val start = mat * Vec4(0, 0, -.02f, 1)
@@ -445,7 +442,7 @@ class Scene(gl: GL3) {
                 end.to(vertDataArray, stride * 3 + 6)
                 color.to(vertDataArray, stride * 3 + 9)
 
-                vertcount += 2
+                vertCount += 2
             }
 
             with(gl) {
@@ -491,7 +488,7 @@ class Scene(gl: GL3) {
             glUseProgram(program.name)
             glUniformMatrix4fv(program["matrix"]!!, 1, false, getCurrentViewProjectionMatrix(eye) to bufferMat)
             glBindVertexArray(vertexArrayName[0])
-            glDrawArrays(GL_LINES, 0, vertcount)
+            glDrawArrays(GL_LINES, 0, vertCount)
             glBindVertexArray(0)
         }
     }
@@ -510,9 +507,9 @@ class FrameBufferDesc(gl: GL3, width: IntByReference, height: IntByReference) {
 
     val size = Vec2i(width.value, height.value)
 
-    val depthRenderbufferName = GLBuffers.newDirectIntBuffer(1)
-    val textureName = GLBuffers.newDirectIntBuffer(Target.MAX)
-    val frameBufferName = GLBuffers.newDirectIntBuffer(Target.MAX)
+    val depthRenderbufferName = intBufferBig(1)
+    val textureName = intBufferBig(Target.MAX)
+    val frameBufferName = intBufferBig(Target.MAX)
 
     /** Purpose: Creates a frame buffer. Returns true if the buffer was set up. Throw error if the setup failed.    */
     init {
@@ -579,8 +576,8 @@ class CompanionWindow(gl: GL3) {
         val MAX = 2
     }
 
-    var bufferName = GLBuffers.newDirectIntBuffer(Buffer.MAX)
-    val vertexArrayName = GLBuffers.newDirectIntBuffer(1)
+    var bufferName = intBufferBig(Buffer.MAX)
+    val vertexArrayName = intBufferBig(1)
     val indexSize: Int
     val program = Program(gl, arrayOf("companion-window.vert", "companion-window.frag"), arrayOf("myTexture"))
 
@@ -588,15 +585,15 @@ class CompanionWindow(gl: GL3) {
 
         val vertices = floatBufferOf(
                 // left eye verts
-                -1, -1, 0, 1,
-                +0, -1, 1, 1,
-                -1, +1, 0, 0,
-                +0, +1, 1, 0,
+                -1, -1, 0, 0,
+                +0, -1, 1, 0,
+                -1, +1, 0, 1,
+                +0, +1, 1, 1,
                 // right eye verts
-                +0, -1, 0, 1,
-                +1, -1, 1, 1,
-                +0, +1, 0, 0,
-                +1, +1, 1, 0)
+                +0, -1, 0, 0,
+                +1, -1, 1, 0,
+                +0, +1, 0, 1,
+                +1, +1, 1, 1)
 
         val indices = shortBufferOf(
                 0, 1, 3,
@@ -632,6 +629,8 @@ class CompanionWindow(gl: GL3) {
 
             glBindBuffer(GL_ARRAY_BUFFER, 0)
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
+            glUseProgram(program.name)
         }
     }
 

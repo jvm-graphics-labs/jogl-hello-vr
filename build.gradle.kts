@@ -28,7 +28,7 @@ dependencies {
     testCompile("com.github.elect86:kotlintest:c4b7b397a0d182d1adaf61f71a9423c228dc0106")
     compile("com.github.elect86:glm:caaf5141fc6a914dda1ed9d6a4443fc33b6d2238")
     compile("com.github.elect86:openvr:45176d8ddd6f874102654bef1440f4b94e41ad58")
-    compile("com.github.elect86:uno-sdk:0db5c85815634841e2d4d2cfb0fece59182b82d3")
+    compile("com.github.elect86:uno-sdk:b98f310924e16ef42ce6722f3b1783bfe98933b6")
     compile("net.java.dev.jna", "jna", "4.3.0")
 
     val jogl = "2.3.2"

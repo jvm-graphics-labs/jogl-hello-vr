@@ -4,23 +4,17 @@ import com.jogamp.newt.event.KeyEvent
 import com.jogamp.newt.event.KeyListener
 import com.jogamp.newt.opengl.GLWindow
 import com.jogamp.opengl.*
-import com.jogamp.opengl.GL.*
+import com.jogamp.opengl.GL.GL_DONT_CARE
 import com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT_SYNCHRONOUS
 import com.jogamp.opengl.GL2ES3.GL_COLOR
 import com.jogamp.opengl.util.Animator
-import com.jogamp.opengl.util.stereo.StereoDeviceRenderer
-import com.sun.jna.Memory
 import com.sun.jna.Pointer
-import com.sun.jna.StringArray
-import glsl.Program
-import mat.Mat4
-import kotlin.properties.Delegates
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.PointerByReference
-import main.b
-import main.i
+import mat.Mat4
 import openvr.*
 import vec._2.Vec2i
+import kotlin.properties.Delegates
 
 
 /**
@@ -29,11 +23,10 @@ import vec._2.Vec2i
 
 fun main(args: Array<String>) {
     App()
-    println("ciao")
 }
 
-var window: GLWindow by Delegates.notNull<GLWindow>()
-var animator: Animator by Delegates.notNull<Animator>()
+var window = GLWindow.create(GLCapabilities(GLProfile.get(GLProfile.GL3)))
+var animator = Animator(window)
 
 var showCubes = true
 
@@ -82,9 +75,6 @@ class App : GLEventListener, KeyListener {
     val eyeTexture = Array<Texture_t.ByReference>(EVREye.MAX, { Texture_t.ByReference() })
 
     init {
-
-        window = GLWindow.create(GLCapabilities(GLProfile.get(GLProfile.GL3)))
-        animator = Animator(window)
 
         with(window) {
 
