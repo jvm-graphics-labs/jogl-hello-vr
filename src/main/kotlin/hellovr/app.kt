@@ -238,13 +238,10 @@ class App : GLEventListener, KeyListener {
         renderStereoTargets(gl)
         companionWindow.render(gl)
 
-//        for(eye in EVREye.values()) {
-            eyeTexture[0].put(eyeDesc[0].textureName[FrameBufferDesc.Target.RESOLVE], ETextureType.OpenGL, EColorSpace.Gamma)
-            vrCompositor()!!.submit(EVREye.Left, eyeTexture[0])
-//        }
-        eyeTexture[1].put(eyeDesc[1].textureName[FrameBufferDesc.Target.RESOLVE], ETextureType.OpenGL, EColorSpace.Gamma)
-        vrCompositor()!!.submit(EVREye.Right, eyeTexture[1])
-
+        for(eye in EVREye.values()) {
+            eyeTexture[eye.i].put(eyeDesc[eye.i].textureName[FrameBufferDesc.Target.RESOLVE], ETextureType.OpenGL, EColorSpace.Gamma)
+            vrCompositor()!!.submit(eye, eyeTexture[eye.i])
+        }
 
         drawable.swapBuffers()
 
@@ -256,7 +253,6 @@ class App : GLEventListener, KeyListener {
 
             println( "PoseCount:$validPoseCount ($poseClasses) Controllers: $controllerCount")
         }
-
 
         updateHMDMatrixPose()
     }
@@ -276,14 +272,14 @@ class App : GLEventListener, KeyListener {
         validPoseCount = 0
         poseClasses = ""
 
-        for (device in 0 until k_unMaxTrackedDeviceCount) {
+        repeat(k_unMaxTrackedDeviceCount) {
 
-            if (trackedDevicePose[device].bPoseIsValid) {
+            if (trackedDevicePose[it].bPoseIsValid) {
 
                 validPoseCount++
-                devicesPoses[device] = trackedDevicePose[device].mDeviceToAbsoluteTracking.toMa4() // TODO put
-                if (devClassChar[device] == 0.toChar())
-                    devClassChar[device] = when (hmd.getTrackedDeviceClass(device)) {
+                devicesPoses[it] = trackedDevicePose[it].mDeviceToAbsoluteTracking.toMa4() // TODO put
+                if (devClassChar[it] == 0.toChar())
+                    devClassChar[it] = when (hmd.getTrackedDeviceClass(it)) {
                         ETrackedDeviceClass.Controller -> 'C'
                         ETrackedDeviceClass.HMD -> 'H'
                         ETrackedDeviceClass.Invalid -> 'I'
@@ -291,7 +287,7 @@ class App : GLEventListener, KeyListener {
                         ETrackedDeviceClass.TrackingReference -> 'T'
                         else -> '?'
                     }
-                poseClasses += devClassChar[device]
+                poseClasses += devClassChar[it]
             }
         }
 
@@ -326,10 +322,10 @@ class App : GLEventListener, KeyListener {
             processVREvent(gl, event)
 
         // Process SteamVR controller state
-        for (device in 0 until k_unMaxTrackedDeviceCount) {
+        repeat(k_unMaxTrackedDeviceCount) {
             val state = VRControllerState_t.ByReference()
-            if (hmd.getControllerState(device, state, state.size()))
-                showTrackedDevice[device] = state.ulButtonPressed == 0L
+            if (hmd.getControllerState(it, state, state.size()))
+                showTrackedDevice[it] = state.ulButtonPressed == 0L
         }
     }
 
