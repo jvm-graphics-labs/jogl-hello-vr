@@ -4,21 +4,21 @@
 
 package hellovr
 
-import buffer.destroy
 import com.jogamp.opengl.GL
 import com.jogamp.opengl.GL2ES3.*
 import com.jogamp.opengl.GL3
 import com.sun.jna.ptr.IntByReference
-import extensions.*
-import glsl.Program
-import main.*
-import mat.Mat4
+import glm_.*
+import uno.glsl.Program
+import glm_.mat4x4.Mat4
 import openvr.*
-import vec._2.Vec2
-import vec._2.Vec2i
-import vec._3.Vec3
-import vec._3.Vec3i
-import vec._4.Vec4
+import glm_.vec2.Vec2
+import glm_.vec2.Vec2i
+import glm_.vec3.Vec3
+import glm_.vec3.Vec3i
+import glm_.vec4.Vec4
+import uno.buffer.*
+import uno.kotlin.url
 import java.awt.image.DataBufferByte
 import javax.imageio.ImageIO
 
@@ -54,6 +54,7 @@ class CGLRenderModel(val renderModelName: String, gl: GL3, vrModel: RenderModel_
     val vertexArrayName = intBufferBig(1)
     val textureName = intBufferBig(1)
     var vertexCount = 0
+
     /**
      * Purpose: Allocates and populates the GL resources for a render model
      */
@@ -151,7 +152,15 @@ class CGLRenderModel(val renderModelName: String, gl: GL3, vrModel: RenderModel_
 
 class Scene(gl: GL3) {
 
-    val program = Program(gl, arrayOf("scene.vert", "scene.frag"), arrayOf("matrix", "myTexture"))
+    class ProgramScene(gl: GL3, shader: String) : ProgramA(gl, shader) {
+        val myTexture = gl.glGetUniformLocation(name, "myTexture")
+    }
+
+    class ProgramModel(gl: GL3, shader: String) : ProgramA(gl, shader) {
+        val diffuse = gl.glGetUniformLocation(name, "diffuse")
+    }
+
+    val program = ProgramScene(gl, "scene")
     val scale = .3f
     val scaleSpacing = 4f
     val sceneVolume = Vec3i(20)     // if you want something other than the default 20x20x20
@@ -160,15 +169,15 @@ class Scene(gl: GL3) {
     val bufferName = intBufferBig(1)
     val textureName = intBufferBig(1)
     val controllerAxes = ControllerAxes(gl)
-    val modelProgram = Program(gl, arrayOf("render-model.vert", "render-model.frag"), arrayOf("matrix", "diffuse"))
+    val modelProgram = ProgramModel(gl, "render-model")
 
     init {
         setup(gl)
         setupTextureMaps(gl)
         gl.glUseProgram(program.name)
-        gl.glUniform1i(program["myTexture"]!!, Semantic.Sampler.DIFFUSE)
+        gl.glUniform1i(program.myTexture, Semantic.Sampler.DIFFUSE)
         gl.glUseProgram(modelProgram.name)
-        gl.glUniform1i(modelProgram["diffuse"]!!, Semantic.Sampler.DIFFUSE)
+        gl.glUniform1i(modelProgram.diffuse, Semantic.Sampler.DIFFUSE)
         gl.glUseProgram(0)
     }
 
@@ -217,7 +226,7 @@ class Scene(gl: GL3) {
             glEnableVertexAttribArray(Semantic.Attr.POSITION)
             glVertexAttribPointer(Semantic.Attr.POSITION, 3, GL_FLOAT, false, stride, offset)
 
-            offset += Vec3.SIZE
+            offset += Vec3.size
             glEnableVertexAttribArray(Semantic.Attr.TEX_COORD)
             glVertexAttribPointer(Semantic.Attr.TEX_COORD, 2, GL_FLOAT, false, stride, offset)
 
@@ -231,7 +240,7 @@ class Scene(gl: GL3) {
 
     fun setupTextureMaps(gl: GL3) = with(gl) {
 
-        val bufferedImage = ImageIO.read("cube_texture.png".URL(this::class.java))
+        val bufferedImage = ImageIO.read("cube_texture.png".url)
         val dataBuffer = (bufferedImage.raster.dataBuffer as DataBufferByte).data.toByteBuffer()
 
         glGenTextures(1, textureName)
@@ -330,7 +339,7 @@ class Scene(gl: GL3) {
 
         if (showCubes) {
             glUseProgram(program.name)
-            glUniformMatrix4fv(program["matrix"]!!, 1, false, getCurrentViewProjectionMatrix(eye) to bufferMat)
+            glUniformMatrix4fv(program.matrix, 1, false, getCurrentViewProjectionMatrix(eye) to bufferMat)
             glBindVertexArray(vertexArrayName[0])
             glActiveTexture(GL_TEXTURE0 + Semantic.Sampler.DIFFUSE)
             glBindTexture(GL_TEXTURE_2D, textureName[0])
@@ -360,7 +369,7 @@ class Scene(gl: GL3) {
 
             val deviceToTracking = devicesPoses [trackedDevice]!!
             val mvp = getCurrentViewProjectionMatrix(eye) * deviceToTracking
-            glUniformMatrix4fv(modelProgram["matrix"]!!, 1, false, mvp to bufferMat)
+            glUniformMatrix4fv(modelProgram.matrix, 1, false, mvp to bufferMat)
 
             trackedDeviceToRenderModel[trackedDevice]!!.draw(gl)
         }
@@ -369,13 +378,17 @@ class Scene(gl: GL3) {
 
     class Vertex(val position: Vec3, val texCoord: Vec2) {
         companion object {
-            val SIZE = Vec3.SIZE + Vec2.SIZE
+            val SIZE = Vec3.size + Vec2.size
         }
+    }
+
+    open class ProgramA(gl: GL3, shader: String) : Program(gl, "$shader.vert", "$shader.frag") {
+        val matrix = gl.glGetUniformLocation(name, "matrix")
     }
 
     class ControllerAxes(gl: GL3) {
 
-        val program = Program(gl, arrayOf("controller.vert", "controller.frag"), arrayOf("matrix"))
+        val program = ProgramA(gl, "controller")
         val vertexArrayName = intBufferBig(1)
         val bufferName = intBufferBig(1)
         val bufferMat = floatBufferBig(16)
@@ -457,13 +470,13 @@ class Scene(gl: GL3) {
 
                     glBufferData(GL.GL_ARRAY_BUFFER, vertexBuffer.capacity() * Float.BYTES.L, null, GL_STREAM_DRAW)
 
-                    val stride = 2 * Vec3.SIZE
+                    val stride = 2 * Vec3.size
                     var offset = 0L
 
                     glEnableVertexAttribArray(Semantic.Attr.POSITION)
                     glVertexAttribPointer(Semantic.Attr.POSITION, 3, GL_FLOAT, false, stride, offset)
 
-                    offset += Vec3.SIZE
+                    offset += Vec3.size
                     glEnableVertexAttribArray(Semantic.Attr.COLOR)
                     glVertexAttribPointer(Semantic.Attr.COLOR, 3, GL_FLOAT, false, stride, offset)
 
@@ -486,7 +499,7 @@ class Scene(gl: GL3) {
 
         fun render(gl: GL3, eye: EVREye) = with(gl) {
             glUseProgram(program.name)
-            glUniformMatrix4fv(program["matrix"]!!, 1, false, getCurrentViewProjectionMatrix(eye) to bufferMat)
+            glUniformMatrix4fv(program.matrix, 1, false, getCurrentViewProjectionMatrix(eye) to bufferMat)
             glBindVertexArray(vertexArrayName[0])
             glDrawArrays(GL_LINES, 0, vertCount)
             glBindVertexArray(0)
@@ -570,6 +583,10 @@ class FrameBufferDesc(gl: GL3, width: IntByReference, height: IntByReference) {
 
 class CompanionWindow(gl: GL3) {
 
+    class ProgramWindow(gl:GL3, shader: String) : Program(gl, "$shader.vert", "$shader.frag") {
+        val myTexture = gl.glGetUniformLocation(name, "myTexture")
+    }
+
     object Buffer {
         val VERTEX = 0
         val INDEX = 1
@@ -579,7 +596,7 @@ class CompanionWindow(gl: GL3) {
     var bufferName = intBufferBig(Buffer.MAX)
     val vertexArrayName = intBufferBig(1)
     val indexSize: Int
-    val program = Program(gl, arrayOf("companion-window.vert", "companion-window.frag"), arrayOf("myTexture"))
+    val program = ProgramWindow(gl, "companion-window")
 
     init {
 
@@ -601,7 +618,7 @@ class CompanionWindow(gl: GL3) {
                 4, 5, 7,
                 4, 7, 6)
 
-        indexSize = indices.SIZE / Short.BYTES
+        indexSize = indices.size / Short.BYTES
 
         with(gl) {
 
@@ -611,10 +628,10 @@ class CompanionWindow(gl: GL3) {
             glGenBuffers(Buffer.MAX, bufferName)
 
             glBindBuffer(GL_ARRAY_BUFFER, bufferName[Buffer.VERTEX])
-            glBufferData(GL_ARRAY_BUFFER, vertices.SIZE.L, vertices, GL_STATIC_DRAW)
+            glBufferData(GL_ARRAY_BUFFER, vertices.size.L, vertices, GL_STATIC_DRAW)
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferName[Buffer.INDEX])
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.SIZE.L, indices, GL_STATIC_DRAW)
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size.L, indices, GL_STATIC_DRAW)
 
             glEnableVertexAttribArray(Semantic.Attr.POSITION)
             glVertexAttribPointer(Semantic.Attr.POSITION, 2, GL_FLOAT, false, Vertex.SIZE, Vertex.OFFSET_POSITION)
@@ -659,9 +676,9 @@ class CompanionWindow(gl: GL3) {
 
     class Vertex {
         companion object {
-            val SIZE = Vec2.SIZE * 2
+            val SIZE = Vec2.size * 2
             val OFFSET_POSITION = 0.L
-            val OFFSET_TEXCOORD = Vec2.SIZE.L
+            val OFFSET_TEXCOORD = Vec2.size.L
         }
     }
 }

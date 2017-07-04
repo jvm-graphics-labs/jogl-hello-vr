@@ -11,9 +11,9 @@ import com.jogamp.opengl.util.Animator
 import com.sun.jna.Pointer
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.PointerByReference
-import mat.Mat4
+import glm_.mat4x4.Mat4
 import openvr.*
-import vec._2.Vec2i
+import glm_.vec2.Vec2i
 import kotlin.properties.Delegates
 
 

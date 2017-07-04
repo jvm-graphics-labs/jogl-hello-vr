@@ -1,37 +1,38 @@
-import org.gradle.api.artifacts.ResolutionStrategy
-import org.gradle.api.internal.artifacts.configurations.ResolutionStrategyInternal
+apply plugin: 'java'
+apply plugin: 'kotlin'
+
+// jitpack
+apply plugin: 'maven'
+group = 'com.github.kotlin-graphics'
 
 buildscript {
 
+    ext.kotlinVersion = '1.2-M1'
+
     repositories {
         mavenCentral()
-        gradleScriptKotlin()
+        maven { url "https://dl.bintray.com/kotlin/kotlin-dev" }
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
     }
 
     dependencies {
-        classpath(kotlinModule("gradle-plugin", "1.1.0-rc-91"))
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     }
 }
 
-apply {
-    plugin("kotlin")
-    plugin("maven")
-}
-
-repositories {
-    mavenCentral()
-    gradleScriptKotlin()
-}
-
 dependencies {
-    compile(kotlinModule("stdlib", "1.1.0-rc-91"))
-    testCompile("com.github.elect86:kotlintest:c4b7b397a0d182d1adaf61f71a9423c228dc0106")
-    compile("com.github.elect86:glm:caaf5141fc6a914dda1ed9d6a4443fc33b6d2238")
-    compile("com.github.elect86:openvr:45176d8ddd6f874102654bef1440f4b94e41ad58")
-    compile("com.github.elect86:uno-sdk:b98f310924e16ef42ce6722f3b1783bfe98933b6")
-    compile("net.java.dev.jna", "jna", "4.3.0")
 
-    val jogl = "2.3.2"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+
+    compile 'com.github.kotlin-graphics:uno-sdk:76d4dc4d194de10e3eae4db52c15adb9d740c258'
+    compile 'com.github.kotlin-graphics:openvr:79dee3716ccf95fa2f320f532b1a5a061400b6e7'
+
+    testCompile 'com.github.elect86:kotlintest:43281b7e1b'
+
+    compile "net.java.dev.jna:jna:4.4.0"
+
+
+    def jogl = "2.3.2"
 
     compile("org.jogamp.gluegen:gluegen-rt:$jogl")
     compile("org.jogamp.jogl:jogl-all:$jogl")
@@ -61,12 +62,22 @@ dependencies {
     runtime("org.jogamp.jogl:jogl-all:$jogl:natives-windows-i586")
 }
 
-configurations.all {
-//    ResolutionStrategy.cacheChangingModulesFor(0, "seconds")
+repositories {
+    mavenCentral()
+    maven { url "https://dl.bintray.com/kotlin/kotlin-dev" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    maven { url 'https://jitpack.io' }
 }
 
-allprojects {
-    repositories {
-        maven { setUrl("https://jitpack.io") }
-    }
+task packageSources(type: Jar, dependsOn: 'classes') {
+    from sourceSets.main.allSource
+    classifier = 'sources'
 }
+
+jar {
+    /** This line of code recursively collects and copies all of a project's files and adds them to the JAR itself.
+     One can extend this task, to skip certain files or particular types at will */
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+artifacts { archives packageSources }
