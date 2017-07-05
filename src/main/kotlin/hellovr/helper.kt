@@ -194,12 +194,11 @@ class Scene(gl: GL3) {
 
         var mat = matScale * matTranlate
 
-        repeat(sceneVolume.x) { x ->
+        repeat(sceneVolume.x) {
 
-            repeat(sceneVolume.y) { y ->
+            repeat(sceneVolume.y) {
 
-                repeat(sceneVolume.z) { z ->
-
+                repeat(sceneVolume.z) {
                     addCube(mat, vertDataArray)
                     mat *= Mat4().translate_(scaleSpacing, 0f, 0f)
                 }
@@ -355,7 +354,7 @@ class Scene(gl: GL3) {
         // ----- Render Model rendering -----
         glUseProgram(modelProgram.name)
 
-        for (trackedDevice in 0 until k_unMaxTrackedDeviceCount) {
+        for (trackedDevice in 0 until vr.maxTrackedDeviceCount) {
 
             if (!trackedDeviceToRenderModel.contains(trackedDevice) || !showTrackedDevice[trackedDevice])
                 continue
@@ -382,7 +381,7 @@ class Scene(gl: GL3) {
         }
     }
 
-    open class ProgramA(gl: GL3, shader: String) : Program(gl, "$shader.vert", "$shader.frag") {
+    open class ProgramA(gl: GL3, shader: String) : Program(gl, shader) {
         val matrix = gl.glGetUniformLocation(name, "matrix")
     }
 
@@ -407,7 +406,7 @@ class Scene(gl: GL3) {
             controllerCount = 0
 
 
-            for (trackedDevice in k_unTrackedDeviceIndex_Hmd + 1 until k_unMaxTrackedDeviceCount) {
+            for (trackedDevice in vr.trackedDeviceIndex_Hmd + 1 until vr.maxTrackedDeviceCount) {
 
                 if (!hmd.isTrackedDeviceConnected(trackedDevice))
                     continue
@@ -583,7 +582,7 @@ class FrameBufferDesc(gl: GL3, width: IntByReference, height: IntByReference) {
 
 class CompanionWindow(gl: GL3) {
 
-    class ProgramWindow(gl:GL3, shader: String) : Program(gl, "$shader.vert", "$shader.frag") {
+    class ProgramWindow(gl:GL3, shader: String) : Program(gl, shader) {
         val myTexture = gl.glGetUniformLocation(name, "myTexture")
     }
 
