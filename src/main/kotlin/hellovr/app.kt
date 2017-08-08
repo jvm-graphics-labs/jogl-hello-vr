@@ -12,8 +12,8 @@ import com.sun.jna.Pointer
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.PointerByReference
 import glm_.mat4x4.Mat4
-import openvr.*
 import glm_.vec2.Vec2i
+import openvr.*
 import kotlin.properties.Delegates
 
 
@@ -25,8 +25,12 @@ fun main(args: Array<String>) {
     App()
 }
 
-var window = GLWindow.create(GLCapabilities(GLProfile.get(GLProfile.GL3)))
-var animator = Animator(window)
+val window = run {
+    val profile = GLProfile.get(GLProfile.GL3)
+    val capabilities = GLCapabilities(profile)
+    GLWindow.create(capabilities)
+}
+val animator = Animator(window)
 
 var showCubes = true
 
@@ -66,9 +70,10 @@ var validPoseCountLast = -1
 class App : GLEventListener, KeyListener {
 
     val debugOpengl = false
-
-    var poseClasses = ""    // what classes we saw poses for this frame
-    val devClassChar = Array(vr.maxTrackedDeviceCount, { '\u0000' })  // for each device, a character representing its class
+    /** what classes we saw poses for this frame    */
+    var poseClasses = ""
+    /** for each device, a character representing its class */
+    val devClassChar = Array(k_unMaxTrackedDeviceCount, { '\u0000' })
 
     // TODO glm .c
 
@@ -132,7 +137,7 @@ class App : GLEventListener, KeyListener {
         // setup renderModels
         for (i in vr.trackedDeviceIndex_Hmd + 1 until vr.maxTrackedDeviceCount)
             if (hmd.isTrackedDeviceConnected(i))
-                setupRenderModelForTrackedDevice (gl, i)
+                setupRenderModelForTrackedDevice(gl, i)
 
 //        for (eye in EVREye.values())
 //            eyeTextures[eye.i].set(eyeDesc[eye.i].textureName[FrameBufferDesc.Target.RESOLVE],ETextureType.OpenGL.i)
@@ -223,10 +228,10 @@ class App : GLEventListener, KeyListener {
     }
 
     /** Purpose: Gets a Matrix Projection Eye with respect to nEye. */
-    fun getHmdMatrixProjectionEye(eye: EVREye) = hmd.getProjectionMatrix(eye, nearClip, farClip).toMa4()
+    fun getHmdMatrixProjectionEye(eye: EVREye) = hmd.getProjectionMatrix(eye, nearClip, farClip)
 
     /** Purpose: Gets an HMDMatrixPoseEye with respect to nEye. */
-    fun getHmdMatrixPoseEye(eye: EVREye) = hmd.getEyeToHeadTransform(eye).toMa4().inverse()
+    fun getHmdMatrixPoseEye(eye: EVREye) = hmd.getEyeToHeadTransform(eye).inverse()
 
     override fun display(drawable: GLAutoDrawable) {
 
@@ -277,7 +282,7 @@ class App : GLEventListener, KeyListener {
             if (trackedDevicePose[it].bPoseIsValid) {
 
                 validPoseCount++
-                devicesPoses[it] = trackedDevicePose[it].mDeviceToAbsoluteTracking.toMa4() // TODO put
+                devicesPoses[it] = trackedDevicePose[it].mDeviceToAbsoluteTracking to Mat4()
                 if (devClassChar[it] == 0.toChar())
                     devClassChar[it] = when (hmd.getTrackedDeviceClass(it)) {
                         ETrackedDeviceClass.Controller -> 'C'
@@ -349,18 +354,4 @@ class App : GLEventListener, KeyListener {
 
     override fun keyReleased(e: KeyEvent?) {
     }
-
-
-    fun HmdMatrix44_t.toMa4() = Mat4(
-            m[0], m[4], m[8], m[12],
-            m[1], m[5], m[9], m[13],
-            m[2], m[6], m[10], m[14],
-            m[3], m[7], m[11], m[15])
-
-    fun HmdMatrix34_t.toMa4() = Mat4(
-            m[0], m[4], m[8], 0,
-            m[1], m[5], m[9], 0,
-            m[2], m[6], m[10], 0,
-            m[3], m[7], m[11], 1)
-
 }
