@@ -62,7 +62,7 @@ var companionWindow: CompanionWindow by Delegates.notNull<CompanionWindow>()
 
 val companionWindowSize = Vec2i(640, 320)
 
-var controllerCount = 0
+var trackedControllerCount = 0
 var controllerCountLast = -1
 var validPoseCount = 0
 var validPoseCountLast = -1
@@ -190,12 +190,14 @@ class App : GLEventListener, KeyListener {
         // load the model if we didn't find one
         val ppModel = PointerByReference()
         val error = EVRRenderModelError.None
+//        println("ppModel before ${ppModel.value}, ${ppModel.pointer}")
 
         while (true) {
             if (vr.renderModels!!.loadRenderModel_Async(renderModelName, ppModel) != EVRRenderModelError.Loading)
                 break
             Thread.sleep(1)
         }
+//        println("ppModel after ${ppModel.value}, ${ppModel.pointer}")
 
         if (error != EVRRenderModelError.None) {
             System.err.println("Unable to load render model $renderModelName - ${error.getName()}")
@@ -220,9 +222,14 @@ class App : GLEventListener, KeyListener {
         val pTexture = RenderModel_TextureMap_t.ByReference(ppTexture.value)
 
         renderModels[renderModelName] = CGLRenderModel(renderModelName, gl, pModel, pTexture)
-
-        vr.renderModels!!.freeRenderModel(pModel)
-        vr.renderModels!!.freeTexture(pTexture)
+//pModel.read()
+//        println("pModel $pModel, ${pModel.pointer}")
+//        println("vertices ${pModel.rVertexData_internal}, ${pModel.vertices?.get(0)}")
+        try {
+            vr.renderModels!!.freeRenderModel(pModel)
+            vr.renderModels!!.freeTexture(pTexture)
+        } catch (error: Error) {
+        }
 
         return renderModels[renderModelName]
     }
@@ -237,6 +244,7 @@ class App : GLEventListener, KeyListener {
 
         val gl = drawable.gl.gL3
 
+        // for now as fast as possible
         processVREvents(gl)
 
         scene.controllerAxes.updateControllerAxes(gl)
@@ -252,11 +260,11 @@ class App : GLEventListener, KeyListener {
 
 
         // Spew out the controller and pose count whenever they change.
-        if (controllerCount != controllerCountLast || validPoseCount != validPoseCountLast) {
+        if (trackedControllerCount != controllerCountLast || validPoseCount != validPoseCountLast) {
             validPoseCountLast = validPoseCount
-            controllerCountLast = controllerCount
+            controllerCountLast = trackedControllerCount
 
-            println("PoseCount:$validPoseCount ($poseClasses) Controllers: $controllerCount")
+            println("PoseCount:$validPoseCount ($poseClasses) Controllers: $trackedControllerCount")
         }
 
         updateHMDMatrixPose()

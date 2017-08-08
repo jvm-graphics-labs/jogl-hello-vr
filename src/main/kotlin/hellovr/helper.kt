@@ -9,15 +9,15 @@ import com.jogamp.opengl.GL2ES3.*
 import com.jogamp.opengl.GL3
 import com.sun.jna.ptr.IntByReference
 import glm_.*
-import uno.glsl.Program
 import glm_.mat4x4.Mat4
-import openvr.*
 import glm_.vec2.Vec2
 import glm_.vec2.Vec2i
 import glm_.vec3.Vec3
 import glm_.vec3.Vec3i
 import glm_.vec4.Vec4
+import openvr.*
 import uno.buffer.*
+import uno.glsl.Program
 import uno.kotlin.url
 import java.awt.image.DataBufferByte
 import javax.imageio.ImageIO
@@ -366,7 +366,7 @@ class Scene(gl: GL3) {
             if (isInputCapturedByAnotherProcess && hmd.getTrackedDeviceClass(trackedDevice) == ETrackedDeviceClass.Controller)
                 continue
 
-            val deviceToTracking = devicesPoses [trackedDevice]!!
+            val deviceToTracking = devicesPoses[trackedDevice]!!
             val mvp = getCurrentViewProjectionMatrix(eye) * deviceToTracking
             glUniformMatrix4fv(modelProgram.matrix, 1, false, mvp to bufferMat)
 
@@ -400,21 +400,19 @@ class Scene(gl: GL3) {
             // don't draw controllers if somebody else has input focus
             if (hmd.isInputFocusCapturedByAnotherProcess()) return
 
-            val vertDataArray = FloatArray(3 * 4 * 3 + 3 * 4)
+            val vertDataArray = FloatArray(3 * 4 * Vec3.length + 3 * 4)
 
             vertCount = 0
-            controllerCount = 0
+            trackedControllerCount = 0
 
 
             for (trackedDevice in vr.trackedDeviceIndex_Hmd + 1 until vr.maxTrackedDeviceCount) {
 
-                if (!hmd.isTrackedDeviceConnected(trackedDevice))
-                    continue
+                if (!hmd.isTrackedDeviceConnected(trackedDevice)) continue
 
-                if (hmd.getTrackedDeviceClass(trackedDevice) != ETrackedDeviceClass.Controller)
-                    continue
+                if (hmd.getTrackedDeviceClass(trackedDevice) != ETrackedDeviceClass.Controller) continue
 
-                controllerCount++
+                trackedControllerCount++
 
                 if (!trackedDevicePose[trackedDevice].bPoseIsValid)
                     continue
@@ -423,7 +421,7 @@ class Scene(gl: GL3) {
 
                 val center = mat * Vec4(0, 0, 0, 1)
 
-                val stride = 3 * 4
+                val stride = 4 * Vec3.length
 
                 repeat(3) {
 
@@ -434,12 +432,9 @@ class Scene(gl: GL3) {
                     point put (mat * point)
 
                     center.to(vertDataArray, stride * it)
-
                     color.to(vertDataArray, stride * it + 3)
-
                     point.to(vertDataArray, stride * it + 6)
-
-                    color.to(vertDataArray, stride * it + 12)
+                    color.to(vertDataArray, stride * it + 9)
 
                     vertCount += 2
                 }
@@ -582,7 +577,7 @@ class FrameBufferDesc(gl: GL3, width: IntByReference, height: IntByReference) {
 
 class CompanionWindow(gl: GL3) {
 
-    class ProgramWindow(gl:GL3, shader: String) : Program(gl, shader) {
+    class ProgramWindow(gl: GL3, shader: String) : Program(gl, shader) {
         val myTexture = gl.glGetUniformLocation(name, "myTexture")
     }
 
