@@ -15,7 +15,7 @@ import glm_.vec2.Vec2i
 import glm_.vec3.Vec3
 import glm_.vec3.Vec3i
 import glm_.vec4.Vec4
-import openvr.*
+import openvr.lib.*
 import uno.buffer.*
 import uno.glsl.Program
 import uno.kotlin.url
@@ -346,7 +346,7 @@ class Scene(gl: GL3) {
             glBindVertexArray(0)
         }
 
-        val isInputCapturedByAnotherProcess = hmd.isInputFocusCapturedByAnotherProcess()
+        val isInputCapturedByAnotherProcess = hmd.isInputFocusCapturedByAnotherProcess
 
         if (!isInputCapturedByAnotherProcess)
             controllerAxes.render(gl, eye)  // draw the controller axis lines
@@ -354,7 +354,7 @@ class Scene(gl: GL3) {
         // ----- Render Model rendering -----
         glUseProgram(modelProgram.name)
 
-        for (trackedDevice in 0 until vr.maxTrackedDeviceCount) {
+        for (trackedDevice in 0 until k_unMaxTrackedDeviceCount) {
 
             if (!trackedDeviceToRenderModel.contains(trackedDevice) || !showTrackedDevice[trackedDevice])
                 continue
@@ -398,7 +398,7 @@ class Scene(gl: GL3) {
         fun updateControllerAxes(gl: GL3) {
 
             // don't draw controllers if somebody else has input focus
-            if (hmd.isInputFocusCapturedByAnotherProcess()) return
+            if (hmd.isInputFocusCapturedByAnotherProcess) return
 
             val vertDataArray = FloatArray(3 * 4 * Vec3.length + 3 * 4)
 
@@ -406,7 +406,7 @@ class Scene(gl: GL3) {
             trackedControllerCount = 0
 
 
-            for (trackedDevice in vr.trackedDeviceIndex_Hmd + 1 until vr.maxTrackedDeviceCount) {
+            for (trackedDevice in k_unTrackedDeviceIndex_Hmd + 1 until k_unMaxTrackedDeviceCount) {
 
                 if (!hmd.isTrackedDeviceConnected(trackedDevice)) continue
 
@@ -504,15 +504,13 @@ class Scene(gl: GL3) {
 /** Purpose: Gets a Current View Projection Matrix with respect to nEye, which may be an Eye_Left or an Eye_Right.  */
 fun getCurrentViewProjectionMatrix(eye: EVREye) = projection[eye.i] * eyePos[eye.i] * hmdPose
 
-class FrameBufferDesc(gl: GL3, width: IntByReference, height: IntByReference) {
+class FrameBufferDesc(gl: GL3, val size: Vec2i) {
 
     object Target {
         val RENDER = 0
         val RESOLVE = 1
         val MAX = 2
     }
-
-    val size = Vec2i(width.value, height.value)
 
     val depthRenderbufferName = intBufferBig(1)
     val textureName = intBufferBig(Target.MAX)

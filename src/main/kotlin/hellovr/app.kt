@@ -13,7 +13,7 @@ import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.PointerByReference
 import glm_.mat4x4.Mat4
 import glm_.vec2.Vec2i
-import openvr.*
+import openvr.lib.*
 import kotlin.properties.Delegates
 
 
@@ -43,7 +43,7 @@ var hmd: IVRSystem by Delegates.notNull<IVRSystem>()
 
 val trackedDevicePosesReference = TrackedDevicePose_t.ByReference()
 @Suppress("UNCHECKED_CAST")
-val trackedDevicePose = trackedDevicePosesReference.toArray(vr.maxTrackedDeviceCount) as Array<TrackedDevicePose_t>
+val trackedDevicePose = trackedDevicePosesReference.toArray(k_unMaxTrackedDeviceCount) as Array<TrackedDevicePose_t>
 
 val devicesPoses = mutableMapOf<Int, Mat4>()
 
@@ -53,7 +53,7 @@ val farClip = 30f
 val trackedDeviceToRenderModel = mutableMapOf<Int, CGLRenderModel>()
 val renderModels = mutableMapOf<String, CGLRenderModel>()
 
-val showTrackedDevice = BooleanArray(vr.maxTrackedDeviceCount)
+val showTrackedDevice = BooleanArray(k_unMaxTrackedDeviceCount)
 
 var scene: Scene by Delegates.notNull<Scene>()
 
@@ -84,13 +84,13 @@ class App : GLEventListener, KeyListener {
         with(window) {
 
             val error = EVRInitError_ByReference(EVRInitError.None)
-            hmd = vr.init(error, EVRApplicationType.Scene)!!
+            hmd = vrInit(error, EVRApplicationType.Scene)!!
 
             if (error.value != EVRInitError.None)
-                throw Error("Unable to init VR runtime: ${vr.getVRInitErrorAsEnglishDescription(error.value)}")
+                throw Error("Unable to init VR runtime: ${vrGetVRInitErrorAsEnglishDescription(error.value)}")
 
-            if (vr.getGenericInterface(vr.IVRRenderModels_Version, error) == Pointer.NULL)
-                throw Error("Unable to get render model interface: ${vr.getVRInitErrorAsEnglishDescription(error.value)}")
+            if (vrGetGenericInterface(IVRRenderModels_Version, error) == Pointer.NULL)
+                throw Error("Unable to get render model interface: ${vrGetVRInitErrorAsEnglishDescription(error.value)}")
 
 
             setPosition(700, 100)
@@ -110,7 +110,7 @@ class App : GLEventListener, KeyListener {
             isVisible = true
 
             // init compositor
-            if (vr.compositor == null)
+            if (vrCompositor == null)
                 System.err.println("Compositor initialization failed. See log file for details")
 
             animator.start()
@@ -135,7 +135,7 @@ class App : GLEventListener, KeyListener {
         setupStereoRenderTargets(gl)
         companionWindow = CompanionWindow(gl)
         // setup renderModels
-        for (i in vr.trackedDeviceIndex_Hmd + 1 until vr.maxTrackedDeviceCount)
+        for (i in k_unTrackedDeviceIndex_Hmd + 1 until k_unMaxTrackedDeviceCount)
             if (hmd.isTrackedDeviceConnected(i))
                 setupRenderModelForTrackedDevice(gl, i)
 
@@ -151,20 +151,15 @@ class App : GLEventListener, KeyListener {
     }
 
     fun setupStereoRenderTargets(gl: GL3) {
-
-        val width = IntByReference()
-        val height = IntByReference()
-
-        hmd.getRecommendedRenderTargetSize(width, height)
-
-        eyeDesc = Array(EVREye.MAX, { FrameBufferDesc(gl, width, height) })
+        val size = hmd.recommendedRenderTargetSize
+        eyeDesc = Array(EVREye.MAX, { FrameBufferDesc(gl, size) })
     }
 
     /** Purpose: Create/destroy GL a Render Model for a single tracked device   */
     //    fun setupRenderModelForTrackedDevice(gl: GL3, trackedDeviceIndex: TrackedDeviceIndex_t) {
     fun setupRenderModelForTrackedDevice(gl: GL3, trackedDeviceIndex: Int) {    // TODO
 
-        if (trackedDeviceIndex >= vr.maxTrackedDeviceCount)
+        if (trackedDeviceIndex >= k_unMaxTrackedDeviceCount)
             return
 
         // try to find a model we've already set up
@@ -193,7 +188,7 @@ class App : GLEventListener, KeyListener {
 //        println("ppModel before ${ppModel.value}, ${ppModel.pointer}")
 
         while (true) {
-            if (vr.renderModels!!.loadRenderModel_Async(renderModelName, ppModel) != EVRRenderModelError.Loading)
+            if (vrRenderModels!!.loadRenderModel_Async(renderModelName, ppModel) != EVRRenderModelError.Loading)
                 break
             Thread.sleep(1)
         }
@@ -208,14 +203,14 @@ class App : GLEventListener, KeyListener {
         val ppTexture = PointerByReference()
 
         while (true) {
-            if (vr.renderModels!!.loadTexture_Async(pModel.diffuseTextureId, ppTexture) != EVRRenderModelError.Loading)
+            if (vrRenderModels!!.loadTexture_Async(pModel.diffuseTextureId, ppTexture) != EVRRenderModelError.Loading)
                 break
             Thread.sleep(1)
         }
 
         if (error != EVRRenderModelError.None) {
             System.err.println("Unable to load render texture id:${pModel.diffuseTextureId} for render model $renderModelName")
-            vr.renderModels!!.freeRenderModel(pModel)
+            vrRenderModels!!.freeRenderModel(pModel)
             return null // move on to the next tracked device
         }
 
@@ -226,8 +221,8 @@ class App : GLEventListener, KeyListener {
 //        println("pModel $pModel, ${pModel.pointer}")
 //        println("vertices ${pModel.rVertexData_internal}, ${pModel.vertices?.get(0)}")
         try {
-            vr.renderModels!!.freeRenderModel(pModel)
-            vr.renderModels!!.freeTexture(pTexture)
+            vrRenderModels!!.freeRenderModel(pModel)
+            vrRenderModels!!.freeTexture(pTexture)
         } catch (error: Error) {
         }
 
@@ -253,7 +248,7 @@ class App : GLEventListener, KeyListener {
 
         for (eye in EVREye.values()) {
             eyeTexture[eye.i].put(eyeDesc[eye.i].textureName[FrameBufferDesc.Target.RESOLVE], ETextureType.OpenGL, EColorSpace.Gamma)
-            vr.compositor!!.submit(eye, eyeTexture[eye.i])
+            vrCompositor!!.submit(eye, eyeTexture[eye.i])
         }
 
         drawable.swapBuffers()
@@ -280,12 +275,12 @@ class App : GLEventListener, KeyListener {
 
     fun updateHMDMatrixPose() {
 
-        vr.compositor!!.waitGetPoses(trackedDevicePosesReference, vr.maxTrackedDeviceCount, null, 0)
+        vrCompositor!!.waitGetPoses(trackedDevicePosesReference, k_unMaxTrackedDeviceCount, null, 0)
 
         validPoseCount = 0
         poseClasses = ""
 
-        repeat(vr.maxTrackedDeviceCount) {
+        repeat(k_unMaxTrackedDeviceCount) {
 
             if (trackedDevicePose[it].bPoseIsValid) {
 
@@ -304,8 +299,8 @@ class App : GLEventListener, KeyListener {
             }
         }
 
-        if (trackedDevicePose[vr.trackedDeviceIndex_Hmd].bPoseIsValid)
-            hmdPose = devicesPoses[vr.trackedDeviceIndex_Hmd]!!.inverse_()
+        if (trackedDevicePose[k_unTrackedDeviceIndex_Hmd].bPoseIsValid)
+            hmdPose = devicesPoses[k_unTrackedDeviceIndex_Hmd]!!.inverse_()
     }
 
     override fun reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int) {
@@ -335,7 +330,7 @@ class App : GLEventListener, KeyListener {
             processVREvent(gl, event)
 
         // Process SteamVR controller state
-        repeat(vr.maxTrackedDeviceCount) {
+        repeat(k_unMaxTrackedDeviceCount) {
             val state = VRControllerState_t.ByReference()
             if (hmd.getControllerState(it, state, state.size()))
                 showTrackedDevice[it] = state.ulButtonPressed == 0L
