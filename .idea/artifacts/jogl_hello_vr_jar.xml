@@ -1,0 +1,70 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="jogl-hello-vr:jar">
+    <output-path>$PROJECT_DIR$/classes/artifacts/jogl_hello_vr_jar</output-path>
+    <root id="archive" name="jogl-hello-vr.jar">
+      <element id="module-output" name="jogl-hello-vr" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.elect86/kotlin-unsigned/f15009c794/9f5d15ba3187d868fd9f17664c92e3b74c41785c/kotlin-unsigned-f15009c794.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/becd519b1f741176561d93645abd90971ca0dca0/jogl-all-2.3.2-natives-windows-amd64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/2da2215dbe1091c54cb83cf2484f8a54a4d0cf7a/jogl-all-2.3.2-natives-macosx-universal.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/166147f43cf7419c4d858cd31f4b5922d6d10c81/jogl-all-2.3.2-natives-android-aarch64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/ffd1c6bd5f6fb088df6cad25e25721eb55ad2228/jogl-all-2.3.2-natives-linux-amd64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/f6d3587b061d7ae6e68932fc62317e3500d2112d/gluegen-rt-2.3.2-natives-linux-armv6hf.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/13.0/919f0dfe192fb4e063e7dacadee7f8bb9a2672a9/annotations-13.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna/4.3.0/f11d386a05132f54a51c99085f016e496f345ea3/jna-4.3.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/7227ae9e480354909d80f4df92b30bbb965387be/gluegen-rt-2.3.2-natives-macosx-universal.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.elect86/glm/4ce71204e6/d73f9d203f86eb375753bb8f1fc4c8b2a87d0734/glm-4ce71204e6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/85213c97a5a50d8dd37de4c35ef32cd4b0ac2ef0/gluegen-rt-2.3.2-natives-windows-amd64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.elect86/unofficial-opengl-SDK/12bba2415b/1d7b1c427dc0a87ca43fd0aeea288c5802062668/unofficial-opengl-SDK-12bba2415b.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/477a6bc4f9256d8c9935b75d55e2b7b01314440b/gluegen-rt-2.3.2-natives-linux-amd64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/2130295b94ef5c19f85fb4ba6107ca193e987858/gluegen-rt-2.3.2-natives-android-armv6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/5db8db5eca6b4445db6cd14f68938736630ae976/jogl-all-2.3.2-natives-windows-i586.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/59b7a336c0ee54161e33662d2ca8ac9d8f6c476d/jogl-all-2.3.2-natives-linux-i586.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/4c104c7aef98cda5c404eacb96b1a4e04fe0dd68/gluegen-rt-2.3.2-natives-android-aarch64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/ab2c18b8a1327255cc354c19c720807d262baa75/jogl-all-2.3.2-natives-android-armv6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/99e0f64bb8882f054825ae4a8a527a17b544a0b5/jogl-all-2.3.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/c55cd566d98d4fcd004b9aaa2c502c8c2dcec192/gluegen-rt-2.3.2-natives-linux-armv6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/edc35ccfc13d4a4ad02c50d580874c18bf48bbef/gluegen-rt-2.3.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/94d1ed501fe53b7f75eab0f712f39802390d0f5b/jogl-all-2.3.2-natives-solaris-i586.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/da68aff010edd35a9ee89b1801dce6e284c7e673/gluegen-rt-2.3.2-natives-linux-i586.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/a5d9ee96c7a365055fba41e30f9a10f42a3c1a3e/gluegen-rt-2.3.2-natives-solaris-i586.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/1.1.0-beta-38/e6934ba7bfc4e1f79bd177fee5a12cabb2391a5d/kotlin-stdlib-1.1.0-beta-38.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/6d14f46336be9e2dc5f85d5df17490cee5d09a90/jogl-all-2.3.2-natives-linux-armv6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/bde11ff064181af9c307180d8f3f1744b7bdc11d/jogl-all-2.3.2-natives-solaris-amd64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/f9b848384a343f39f454e59cead435c2c0cbf542/gluegen-rt-2.3.2-natives-windows-i586.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.jogl/jogl-all/2.3.2/2c434c560dbd821b0ed569e44d3d441727491dac/jogl-all-2.3.2-natives-linux-armv6hf.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.elect86/openvr/7fc992319c406b21bd4d2ad09a72d41728347389/84fcfc3840dcb5631458e666063a4754957d60e5/openvr-7fc992319c406b21bd4d2ad09a72d41728347389.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jogamp.gluegen/gluegen-rt/2.3.2/9a23cd22c59e3f04082e7589e850b79c9e696dc4/gluegen-rt-2.3.2-natives-solaris-amd64.jar" path-in-jar="/" />
+      <element id="library" level="project" name="Gradle: com.github.elect86:glm:4ce71204e6" />
+      <element id="library" level="project" name="Gradle: com.github.elect86:kotlin-unsigned:f15009c794" />
+      <element id="library" level="project" name="Gradle: com.github.elect86:openvr:7fc992319c406b21bd4d2ad09a72d41728347389" />
+      <element id="library" level="project" name="Gradle: com.github.elect86:unofficial-opengl-SDK:12bba2415b" />
+      <element id="library" level="project" name="Gradle: net.java.dev.jna:jna:4.3.0" />
+      <element id="library" level="project" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.1.0-beta-38" />
+      <element id="library" level="project" name="Gradle: org.jetbrains:annotations:13.0" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-android-aarch64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-android-armv6" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-linux-amd64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-linux-armv6" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-linux-armv6hf" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-linux-i586" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-macosx-universal" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-solaris-amd64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-solaris-i586" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-windows-amd64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.gluegen:gluegen-rt:2.3.2:natives-windows-i586" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-android-aarch64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-android-armv6" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-linux-amd64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-linux-armv6" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-linux-armv6hf" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-linux-i586" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-macosx-universal" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-solaris-amd64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-solaris-i586" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-windows-amd64" />
+      <element id="library" level="project" name="Gradle: org.jogamp.jogl:jogl-all:2.3.2:natives-windows-i586" />
+    </root>
+  </artifact>
+</component>

@@ -9,7 +9,6 @@ import com.jogamp.opengl.GL2ES2.GL_DEBUG_OUTPUT_SYNCHRONOUS
 import com.jogamp.opengl.GL2ES3.GL_COLOR
 import com.jogamp.opengl.util.Animator
 import com.sun.jna.Pointer
-import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.PointerByReference
 import glm_.mat4x4.Mat4
 import glm_.vec2.Vec2i
@@ -25,7 +24,7 @@ fun main(args: Array<String>) {
     App()
 }
 
-val window = run {
+val window: GLWindow = run {
     val profile = GLProfile.get(GLProfile.GL3)
     val capabilities = GLCapabilities(profile)
     GLWindow.create(capabilities)
@@ -34,12 +33,12 @@ val animator = Animator(window)
 
 var showCubes = true
 
-val projection = Array<Mat4>(EVREye.MAX, { Mat4() })
-val eyePos = Array<Mat4>(EVREye.MAX, { Mat4() })
+val projection = Array(EVREye.MAX, { Mat4() })
+val eyePos = Array(EVREye.MAX, { Mat4() })
 
-var hmdPose = Mat4() // TODO val
+val hmdPose = Mat4()
 
-var hmd: IVRSystem by Delegates.notNull<IVRSystem>()
+var hmd: IVRSystem by Delegates.notNull()
 
 val trackedDevicePosesReference = TrackedDevicePose_t.ByReference()
 @Suppress("UNCHECKED_CAST")
@@ -55,10 +54,10 @@ val renderModels = mutableMapOf<String, CGLRenderModel>()
 
 val showTrackedDevice = BooleanArray(k_unMaxTrackedDeviceCount)
 
-var scene: Scene by Delegates.notNull<Scene>()
+var scene: Scene by Delegates.notNull()
 
-var eyeDesc: Array<FrameBufferDesc> by Delegates.notNull<Array<FrameBufferDesc>>()
-var companionWindow: CompanionWindow by Delegates.notNull<CompanionWindow>()
+var eyeDesc: Array<FrameBufferDesc> by Delegates.notNull()
+var companionWindow: CompanionWindow by Delegates.notNull()
 
 val companionWindowSize = Vec2i(640, 320)
 
@@ -73,11 +72,11 @@ class App : GLEventListener, KeyListener {
     /** what classes we saw poses for this frame    */
     var poseClasses = ""
     /** for each device, a character representing its class */
-    val devClassChar = Array(k_unMaxTrackedDeviceCount, { '\u0000' })
+    val devClassChar = CharArray(k_unMaxTrackedDeviceCount)
 
     // TODO glm .c
 
-    val eyeTexture = Array<Texture_t.ByReference>(EVREye.MAX, { Texture_t.ByReference() })
+    val eyeTexture = Array(EVREye.MAX, { Texture_t.ByReference() })
 
     init {
 
@@ -166,8 +165,7 @@ class App : GLEventListener, KeyListener {
         val renderModelName = hmd.getStringTrackedDeviceProperty(trackedDeviceIndex, ETrackedDeviceProperty.RenderModelName_String)
         val renderModel = findOrLoadRenderModel(gl, renderModelName)
         if (renderModel == null) {
-            val trackingSystemName = hmd.getStringTrackedDeviceProperty(trackedDeviceIndex,
-                    ETrackedDeviceProperty.TrackingSystemName_String)
+            val trackingSystemName = hmd.getStringTrackedDeviceProperty(trackedDeviceIndex, ETrackedDeviceProperty.TrackingSystemName_String)
             println("Unable to load render model for tracked device $trackedDeviceIndex ($trackingSystemName.$renderModelName)")
         } else {
             trackedDeviceToRenderModel[trackedDeviceIndex] = renderModel
@@ -286,7 +284,7 @@ class App : GLEventListener, KeyListener {
 
                 validPoseCount++
                 devicesPoses[it] = trackedDevicePose[it].mDeviceToAbsoluteTracking to Mat4()
-                if (devClassChar[it] == 0.toChar())
+                if (devClassChar[it] == '\u0000')
                     devClassChar[it] = when (hmd.getTrackedDeviceClass(it)) {
                         ETrackedDeviceClass.Controller -> 'C'
                         ETrackedDeviceClass.HMD -> 'H'
@@ -300,7 +298,7 @@ class App : GLEventListener, KeyListener {
         }
 
         if (trackedDevicePose[k_unTrackedDeviceIndex_Hmd].bPoseIsValid)
-            hmdPose = devicesPoses[k_unTrackedDeviceIndex_Hmd]!!.inverse_()
+            devicesPoses[k_unTrackedDeviceIndex_Hmd]!!.inverse(hmdPose)
     }
 
     override fun reshape(drawable: GLAutoDrawable, x: Int, y: Int, width: Int, height: Int) {
@@ -352,6 +350,8 @@ class App : GLEventListener, KeyListener {
             EVREventType.TrackedDeviceDeactivated -> println("Device $id detached.")
 
             EVREventType.TrackedDeviceUpdated -> println("Device $id updated.")
+
+            else -> Unit
         }
     }
 
