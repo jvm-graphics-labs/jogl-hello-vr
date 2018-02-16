@@ -112,28 +112,6 @@ public class ModelsRender {
         return result;
     }
 
-    /**
-     * Helper to get a string from a tracked device property and turn it into a
-     * String.
-     *
-     * @param hmd
-     * @param device
-     * @return
-     */
-    private String getTrackedDeviceString(IVRSystem hmd, int device, int prop, IntBuffer propError) {
-
-        int requiredBufferLen = hmd.GetStringTrackedDeviceProperty.apply(device, prop, Pointer.NULL, 0, propError);
-
-        if (requiredBufferLen == 0) {
-            return "";
-        }
-
-        Pointer stringPointer = new Memory(requiredBufferLen);
-        hmd.GetStringTrackedDeviceProperty.apply(device, prop, stringPointer, requiredBufferLen, propError);
-
-        return stringPointer.getString(0);
-    }
-
     private Model findOrLoad(GL4 gl4, String modelName) {
 
         Model model = StreamEx.of(models).findAny(m -> m.name.equals(modelName)).orElse(null);

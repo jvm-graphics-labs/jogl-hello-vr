@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem
+
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
@@ -7,12 +9,12 @@ group = 'com.github.kotlin-graphics'
 
 buildscript {
 
-    ext.kotlinVersion = '1.2.0-beta-31'
+    ext.kotlinVersion = '1.2.30-eap-16'
 
     repositories {
         mavenCentral()
-        maven { url "https://dl.bintray.com/kotlin/kotlin-dev" }
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven { setUrl("https://dl.bintray.com/kotlin/kotlin-dev") }
+        maven { setUrl("https://oss.sonatype.org/content/repositories/snapshots/") }
     }
 
     dependencies {
@@ -24,8 +26,8 @@ dependencies {
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 
-    compile 'com.github.kotlin-graphics:uno-sdk:6e99a6f466df4107a7d0c20208b56fdb9b343f02'
-    compile 'com.github.kotlin-graphics:openvr:85b79a3ebc9eb683729a506f397b014bd1bf7d25'
+    compile 'com.github.kotlin-graphics:uno-sdk:9b180ad3940abdc2e706b115d48a270202c11a3a'
+    compile 'com.github.kotlin-graphics:openvr:f5ec4ac7fbfaf310458d4abd82fb221ec822ee62'
 
     testCompile 'com.github.elect86:kotlintest:43281b7e1b'
 
@@ -60,13 +62,38 @@ dependencies {
     runtime("org.jogamp.jogl:jogl-all:$jogl:natives-solaris-i586")
     runtime("org.jogamp.jogl:jogl-all:$jogl:natives-windows-amd64")
     runtime("org.jogamp.jogl:jogl-all:$jogl:natives-windows-i586")
+
+    switch (OperatingSystem.current()) {
+        case OperatingSystem.WINDOWS:
+            ext.lwjglNatives = "natives-windows"
+            break
+        case OperatingSystem.LINUX:
+            ext.lwjglNatives = "natives-linux"
+            break
+        case OperatingSystem.MAC_OS:
+            ext.lwjglNatives = "natives-macos"
+            break
+    }
+    ext.lwjglVersion = "3.1.6-SNAPSHOT"
+    compile "org.lwjgl:lwjgl:${lwjglVersion}"
+    compile "org.lwjgl:lwjgl-glfw:${lwjglVersion}"
+    compile "org.lwjgl:lwjgl-jemalloc:${lwjglVersion}"
+    compile "org.lwjgl:lwjgl-openal:${lwjglVersion}"
+    compile "org.lwjgl:lwjgl-opengl:${lwjglVersion}"
+    compile "org.lwjgl:lwjgl-stb:${lwjglVersion}"
+    runtime "org.lwjgl:lwjgl:${lwjglVersion}:${lwjglNatives}"
+    runtime "org.lwjgl:lwjgl-glfw:${lwjglVersion}:${lwjglNatives}"
+    runtime "org.lwjgl:lwjgl-jemalloc:${lwjglVersion}:${lwjglNatives}"
+    runtime "org.lwjgl:lwjgl-openal:${lwjglVersion}:${lwjglNatives}"
+    runtime "org.lwjgl:lwjgl-opengl:${lwjglVersion}:${lwjglNatives}"
+    runtime "org.lwjgl:lwjgl-stb:${lwjglVersion}:${lwjglNatives}"
 }
 
 repositories {
     mavenCentral()
-    maven { url "https://dl.bintray.com/kotlin/kotlin-dev" }
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-    maven { url 'https://jitpack.io' }
+    maven { setUrl("https://dl.bintray.com/kotlin/kotlin-dev") }
+    maven { setUrl("https://oss.sonatype.org/content/repositories/snapshots/") }
+    maven { setUrl('https://jitpack.io') }
 }
 
 task packageSources(type: Jar, dependsOn: 'classes') {
