@@ -167,7 +167,7 @@ class App : GLEventListener, KeyListener {
 
         // try to find a model we've already set up
         val renderModelName = hmd.getStringTrackedDeviceProperty(trackedDeviceIndex, ETrackedDeviceProperty.RenderModelName_String)
-        val renderModel = findOrLoadRenderModel(gl, renderModelName)
+        val renderModel = findOrLoadRenderModel(renderModelName)
         if (renderModel == null) {
             val trackingSystemName = hmd.getStringTrackedDeviceProperty(trackedDeviceIndex, ETrackedDeviceProperty.TrackingSystemName_String)
             println("Unable to load render model for tracked device $trackedDeviceIndex ($trackingSystemName.$renderModelName)")
@@ -178,7 +178,7 @@ class App : GLEventListener, KeyListener {
     }
 
     /** Purpose: Finds a render model we've already loaded or loads a new one   */
-    fun findOrLoadRenderModel(gl: GL3, renderModelName: String): CGLRenderModel? {
+    fun findOrLoadRenderModel(renderModelName: String): CGLRenderModel? {
 
         renderModels[renderModelName]?.let { return it }
 
