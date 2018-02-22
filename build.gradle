@@ -27,7 +27,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 
     compile 'com.github.kotlin-graphics:uno-sdk:9b180ad3940abdc2e706b115d48a270202c11a3a'
-    compile 'com.github.kotlin-graphics:openvr:f5ec4ac7fbfaf310458d4abd82fb221ec822ee62'
+    compile 'com.github.kotlin-graphics:openvr:41552f527ccf414bd44e54c16cd8b04cddf5c48d'
 
     testCompile 'com.github.elect86:kotlintest:43281b7e1b'
 
